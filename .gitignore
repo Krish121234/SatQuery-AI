@@ -1,0 +1,21 @@
+# Environment / secrets
+.env
+*.env
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Colab / notebooks checkpoints
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
