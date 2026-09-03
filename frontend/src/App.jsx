@@ -4,6 +4,7 @@ import QuestionInput from "./components/QuestionInput";
 import AnswerPanel from "./components/AnswerPanel";
 import OverlayCanvas from "./components/OverlayCanvas";
 import BeforeAfterViewer from "./components/BeforeAfterViewer";
+import { queryImage } from "./services/api";
 
 export default function App() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -16,16 +17,21 @@ export default function App() {
     setAnswer(null);
   }
 
-  function handleQuestionSubmit(question) {
+  async function handleQuestionSubmit(question) {
     setLoading(true);
-    // Day 1 stub: simulate a short delay, then set placeholder response
-    setTimeout(() => {
+    try {
+      // Day 2: Use mock API service (returns hardcoded grounded answers)
+      const result = await queryImage(selectedImage?.dataUrl, question);
+      setAnswer(result);
+    } catch (error) {
+      console.error("Query failed:", error);
       setAnswer({
-        answer: `[Stub response for: "${question}"] Backend integration coming on Day 3-4.`,
-        evidence: ["forest", "water_body"],
+        answer: "Sorry, something went wrong. Please try again.",
+        evidence: [],
       });
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   }
 
   return (
@@ -93,10 +99,10 @@ export default function App() {
                 <AnswerPanel answer={answer} loading={loading} />
               </div>
 
-              {/* Day 1 Footer hint */}
+              {/* Day 2 Footer hint */}
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <strong>Day 1 — Component Skeleton:</strong> All 5 components
-                stubbed and wired. Zero console errors. Ready for mock data on Day 2.
+                <strong>Day 2 — Mock API Wired:</strong> Question box functional with
+                loading spinner. Returns grounded mock answers from Lakshya's format.
               </div>
             </div>
           </div>
