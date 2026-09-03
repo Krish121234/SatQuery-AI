@@ -1,0 +1,24 @@
+{
+  "grid": {
+    "id": "grid_alpha_01",
+    "resolution": "10m"
+  },
+  "summary": {
+    "dominant_class": "Agriculture",
+    "total_area_sqkm": 25
+  },
+  "tiles": [
+    {
+      "cell_id": "A1",
+      "land_cover_class": "Agriculture",
+      "confidence": 94.2,
+      "bounding_box": [12.9716, 77.5946, 12.9726, 77.5956]
+    },
+    {
+      "cell_id": "A2",
+      "land_cover_class": "Water",
+      "confidence": 88.5,
+      "bounding_box": [12.9726, 77.5946, 12.9736, 77.5956]
+    }
+  ]
+}
