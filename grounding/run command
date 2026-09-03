@@ -1,2 +1,0 @@
-pip install transformers torch pillow open_clip_torch huggingface_hub
-python grounding_pipeline.py your_image.jpg --out result.json
