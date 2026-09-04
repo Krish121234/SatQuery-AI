@@ -318,7 +318,7 @@ class MockPipeline:
         )
 
         # Step 4: Sid's Gemini integration
-        answer = GeminiSimulator.answer_question(question, scaled_grounding)
+        answer = self.gemini.answer_question(question, scaled_grounding)
 
         result = {
             "query_id": query_id,
