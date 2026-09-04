@@ -1,7 +1,7 @@
 """
 Query routes - handles satellite image querying and change detection
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from models.request import QueryRequest, QueryChangeRequest
 from services.mock_service import MockPipeline
 
@@ -11,7 +11,7 @@ pipeline = MockPipeline()
 
 @router.post("/query")
 async def query_image(
-    question: str,
+    question: str = Form(...),
     file: UploadFile = File(...)
 ):
     """
@@ -50,8 +50,8 @@ async def query_image(
 
 @router.post("/query/change")
 async def detect_change(
-    before_question: str,
-    after_question: str,
+    before_question: str = Form(""),
+    after_question: str = Form(""),
     before_file: UploadFile = File(...),
     after_file: UploadFile = File(...)
 ):
