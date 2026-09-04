@@ -1,40 +1,25 @@
 /**
  * API Service — handles communication with the backend.
  *
- * Day 2: Returns hardcoded mock responses from Lakshya's pretend answer format.
- * Day 3-4: Will be updated to call real backend endpoints.
+ * Day 4: Now calling Lakshya's real FastAPI backend on localhost:8000
  */
 
-// Mock grounding data (from Lakshya's mock format)
-const MOCK_GROUNDING = {
-  image_id: "sample_001",
-  grid: { rows: 3, cols: 3 },
-  tiles: [
-    { tile_id: "tile_1", class: "vegetation", confidence: 0.91 },
-    { tile_id: "tile_2", class: "agriculture", confidence: 0.76 },
-    { tile_id: "tile_3", class: "built_up", confidence: 0.83 },
-    { tile_id: "tile_4", class: "built_up", confidence: 0.94 },
-    { tile_id: "tile_5", class: "agriculture", confidence: 0.67 },
-    { tile_id: "tile_6", class: "water", confidence: 0.88 },
-    { tile_id: "tile_7", class: "vegetation", confidence: 0.90 },
-    { tile_id: "tile_8", class: "water", confidence: 0.95 },
-    { tile_id: "tile_9", class: "agriculture", confidence: 0.81 },
-  ],
-  summary: {
-    agriculture: 0.48,
-    vegetation: 0.18,
-    built_up: 0.22,
-    water: 0.12,
-  },
-};
+const API_BASE_URL = "http://localhost:8000/api";
 
-// Mock answer responses based on question type
-const MOCK_ANSWERS = {
-  forest: "Approximately 18% of this region is covered by vegetation (forest). The forested areas are primarily located in the northern and southwestern sections of the analyzed region.",
-  water: "Water bodies are concentrated primarily in the southeastern and central-right regions of the image, covering approximately 12% of the total area.",
-  agriculture: "Agricultural land is dominant, covering approximately 48% of the analyzed region. Built-up areas account for ~22%, vegetation ~18%, and water bodies ~12%.",
-  default: "Based on the grounding analysis: Agricultural land is dominant (48%), followed by built-up areas (22%), vegetation (18%), and water bodies (12%).",
-};
+/**
+ * Convert a data URL to a File object for multipart upload
+ */
+function dataURLtoFile(dataUrl, filename) {
+  const arr = dataUrl.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
 
 /**
  * Query the backend with an image and question.
@@ -44,46 +29,35 @@ const MOCK_ANSWERS = {
  * @returns {Promise<object>} - Answer object with { answer, evidence, grounding }
  */
 export async function queryImage(imageDataUrl, question) {
-  // Simulate network delay (600-1200ms)
-  const delay = 600 + Math.random() * 600;
-  await new Promise((resolve) => setTimeout(resolve, delay));
+  // Convert data URL to File for multipart upload
+  const imageFile = dataURLtoFile(imageDataUrl, "satellite-image.jpg");
 
-  // Simple question classification for mock responses
-  const q = question.toLowerCase();
-  let answer = MOCK_ANSWERS.default;
-  let evidence = ["agriculture", "built_up", "vegetation", "water"];
+  // Build FormData (backend expects multipart/form-data)
+  const formData = new FormData();
+  formData.append("file", imageFile);
+  formData.append("question", question);
 
-  if (q.includes("forest") || q.includes("tree") || q.includes("vegetation")) {
-    answer = MOCK_ANSWERS.forest;
-    evidence = ["vegetation"];
-  } else if (q.includes("water") || q.includes("river") || q.includes("lake")) {
-    answer = MOCK_ANSWERS.water;
-    evidence = ["water"];
-  } else if (q.includes("farm") || q.includes("crop") || q.includes("agriculture")) {
-    answer = MOCK_ANSWERS.agriculture;
-    evidence = ["agriculture", "built_up", "vegetation", "water"];
+  // Call backend
+  const response = await fetch(`${API_BASE_URL}/query`, {
+    method: "POST",
+    body: formData,
+    // No Content-Type header — browser sets it automatically with boundary for FormData
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Backend request failed: ${response.status} ${errorText}`);
   }
 
-  // Return mock response in the expected format
+  const result = await response.json();
+
+  // Backend returns: { answer, grounding: { tiles, summary }, evidence }
+  // Frontend expects: { image_id, question, answer, evidence, grounding }
   return {
-    image_id: MOCK_GROUNDING.image_id,
+    image_id: result.image_id || "unknown",
     question,
-    answer,
-    evidence, // List of land cover classes mentioned in the answer
-    grounding: MOCK_GROUNDING, // Full grounding JSON (for overlay rendering later)
+    answer: result.answer,
+    evidence: result.evidence || [],
+    grounding: result.grounding || { tiles: [], summary: {} },
   };
 }
-
-/**
- * Day 3-4: This will be replaced with real fetch() calls like:
- *
- * export async function queryImage(imageDataUrl, question) {
- *   const response = await fetch('http://localhost:8000/api/query', {
- *     method: 'POST',
- *     headers: { 'Content-Type': 'application/json' },
- *     body: JSON.stringify({ image: imageDataUrl, question })
- *   });
- *   if (!response.ok) throw new Error('Backend request failed');
- *   return response.json();
- * }
- */
