@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # API settings
     api_prefix: str = "/api"
 
+    # Gemini API key for Sid's query router
+    gemini_api_key: str = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

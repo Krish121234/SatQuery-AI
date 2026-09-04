@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 from io import BytesIO
 from PIL import Image
+from .query_service import QueryRouter
 
 
 def scale_grounding_output(
@@ -161,41 +162,24 @@ class GroundingResult:
 
 
 class GeminiSimulator:
-    """Simulates Sid's Gemini integration for answering questions"""
+    """Wraps Sid's QueryRouter for answering questions with real Gemini integration"""
 
-    @staticmethod
-    def answer_question(question: str, grounding_data: Dict[str, Any]) -> str:
+    def __init__(self):
+        """Initialize the query router with Gemini client"""
+        self.router = QueryRouter()
+
+    def answer_question(self, question: str, grounding_data: Dict[str, Any]) -> str:
         """
-        Simulate Gemini answering a question based on grounding data.
+        Use Sid's QueryRouter to answer a question based on grounding data.
 
         Args:
             question: User's natural language question
             grounding_data: The grounding result from Sai's pipeline
 
         Returns:
-            Natural language answer based on the grounding data
+            Natural language answer from Gemini (or fallback)
         """
-        summary = grounding_data.get("summary", "")
-
-        # Generate contextual answer based on question keywords
-        if "agriculture" in question.lower() or "farm" in question.lower():
-            return f"Based on satellite analysis, {summary}. The area shows significant agricultural presence with several tiles classified as Agriculture."
-
-        elif "water" in question.lower() or "lake" in question.lower() or "river" in question.lower():
-            return f"Analyzing the satellite imagery, {summary}. Water bodies are detected in the region as shown in the grounding tiles."
-
-        elif "vegetation" in question.lower() or "forest" in question.lower() or "green" in question.lower():
-            return f"The satellite data indicates {summary}. Vegetation coverage is present across multiple tiles in the analyzed region."
-
-        elif "built" in question.lower() or "urban" in question.lower() or "city" in question.lower() or "development" in question.lower():
-            return f"Urban analysis shows {summary}. Built-up areas are identified with the corresponding confidence levels shown in the grounding tiles."
-
-        elif "change" in question.lower() or "difference" in question.lower():
-            return f"Comparing the imagery, {summary}. Changes in land classification are visible across the grid tiles."
-
-        else:
-            # Generic answer
-            return f"Based on the satellite grounding analysis, {summary}. The image shows diverse land classifications across the 4x4 grid."
+        return self.router.process_query(question, grounding_data)
 
 
 class ChangeDetector:
@@ -270,6 +254,7 @@ class MockPipeline:
 
     def __init__(self):
         self.query_history = []
+        self.gemini = GeminiSimulator()
 
     @staticmethod
     def get_image_dimensions(image_data: bytes) -> tuple:
