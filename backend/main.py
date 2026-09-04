@@ -3,8 +3,8 @@ FastAPI main application for SatQuery-AI backend
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.config import settings
-from backend.routes import health, query
+from config import settings
+from routes import health, query
 
 # Initialize FastAPI app
 app = FastAPI(

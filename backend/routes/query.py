@@ -2,8 +2,8 @@
 Query routes - handles satellite image querying and change detection
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from backend.models.request import QueryRequest, QueryChangeRequest
-from backend.services.mock_service import MockPipeline
+from models.request import QueryRequest, QueryChangeRequest
+from services.mock_service import MockPipeline
 
 router = APIRouter()
 pipeline = MockPipeline()
