@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
 
     # Gemini API key for Sid's query router
-    gemini_api_key: str = None
+    gemini_api_key: str = ""
 
     class Config:
         env_file = ".env"
