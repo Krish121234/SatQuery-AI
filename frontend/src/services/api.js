@@ -1,47 +1,36 @@
 /**
  * API Service — handles communication with the backend.
- *
- * Day 4: Now calling Lakshya's real FastAPI backend on localhost:8000
  */
 
 const API_BASE_URL = "http://localhost:8000/api";
 
-/**
- * Convert a data URL to a File object for multipart upload
- */
-function dataURLtoFile(dataUrl, filename) {
-  const arr = dataUrl.split(",");
-  const mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+async function toUploadFile(value, filename) {
+  if (value instanceof File) return value;
+
+  if (typeof value === "string" && value.startsWith("data:")) {
+    const [header, encoded] = value.split(",");
+    const mime = header.match(/:(.*?);/)?.[1] || "image/jpeg";
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new File([bytes], filename, { type: mime });
   }
-  return new File([u8arr], filename, { type: mime });
+
+  if (typeof value === "string") {
+    const response = await fetch(value);
+    if (!response.ok) {
+      throw new Error(`Unable to load image for upload: ${response.status}`);
+    }
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type || "image/jpeg" });
+  }
+
+  throw new Error("An image file or image URL is required");
 }
 
-/**
- * Query the backend with an image and question.
- *
- * @param {string} imageDataUrl - Base64 data URL of the uploaded image
- * @param {string} question - User's natural language question
- * @returns {Promise<object>} - Answer object with { answer, evidence, grounding }
- */
-export async function queryImage(imageDataUrl, question) {
-  // Convert data URL to File for multipart upload
-  const imageFile = dataURLtoFile(imageDataUrl, "satellite-image.jpg");
-
-  // Build FormData (backend expects multipart/form-data)
-  const formData = new FormData();
-  formData.append("file", imageFile);
-  formData.append("question", question);
-
-  // Call backend
-  const response = await fetch(`${API_BASE_URL}/query`, {
+async function postMultipart(path, formData) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     body: formData,
-    // No Content-Type header — browser sets it automatically with boundary for FormData
   });
 
   if (!response.ok) {
@@ -49,15 +38,35 @@ export async function queryImage(imageDataUrl, question) {
     throw new Error(`Backend request failed: ${response.status} ${errorText}`);
   }
 
-  const result = await response.json();
+  return response.json();
+}
 
-  // Backend returns: { answer, grounding: { tiles, summary }, evidence }
-  // Frontend expects: { image_id, question, answer, evidence, grounding }
+export async function queryImage(image, question) {
+  const formData = new FormData();
+  formData.append("file", await toUploadFile(image, "satellite-image.jpg"));
+  formData.append("question", question);
+  const result = await postMultipart("/query", formData);
+
   return {
-    image_id: result.image_id || "unknown",
-    question,
-    answer: result.answer,
+    image_id: result.image_id || result.filename || "unknown",
+    question: result.question || question,
+    answer: result.answer || "No answer returned by the backend.",
     evidence: result.evidence || [],
-    grounding: result.grounding || { tiles: [], summary: {} },
+    grounding: result.grounding || { grid: { rows: 8, cols: 8 }, tiles: [] },
   };
+}
+
+export async function queryChange(beforeImage, afterImage, question = "") {
+  const formData = new FormData();
+  formData.append("before_file", await toUploadFile(beforeImage, "before-image.jpg"));
+  formData.append("after_file", await toUploadFile(afterImage, "after-image.jpg"));
+  formData.append("before_question", question);
+  formData.append("after_question", question);
+  return postMultipart("/query/change", formData);
+}
+
+export async function checkHealth() {
+  const response = await fetch(`${API_BASE_URL}/health`);
+  if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
+  return response.json();
 }

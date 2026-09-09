@@ -8,6 +8,7 @@ export default function BeforeAfterViewer({
   afterDate = "2024-09-02",
   onRunComparison,
   loading,
+  result,
 }) {
   const [sliderPos, setSliderPos] = useState(50);
   const [question, setQuestion] = useState(
@@ -86,6 +87,12 @@ export default function BeforeAfterViewer({
           className="absolute inset-0 z-30 opacity-0 cursor-ew-resize h-full w-full"
         />
       </div>
+
+      {result?.change_detection?.summary && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200">
+          {result.change_detection.summary}
+        </div>
+      )}
 
       {/* Change Inference Prompt */}
       <div className="flex flex-col gap-2">

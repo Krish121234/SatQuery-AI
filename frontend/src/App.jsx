@@ -7,7 +7,7 @@ import AnalysisSidebar from "./components/AnalysisSidebar";
 import ResponseCards from "./components/ResponseCards";
 import ImageUploaderModal, { PRESET_IMAGES } from "./components/ImageUploaderModal";
 import BeforeAfterViewer from "./components/BeforeAfterViewer";
-import { queryImage } from "./services/api";
+import { queryChange, queryImage } from "./services/api";
 
 export default function App() {
   const [tab, setTab] = useState("query"); // "query" | "change"
@@ -24,7 +24,9 @@ export default function App() {
   });
 
   const [grounding, setGrounding] = useState({
-    grid: { rows: 4, cols: 4 },
+    image_width: 256,
+    image_height: 256,
+    grid: { rows: 8, cols: 8 },
     tiles: [
       { tile_id: 0, class: "Agriculture", confidence: 0.948, bbox: [0, 0, 100, 100] },
       { tile_id: 1, class: "Vegetation", confidence: 0.912, bbox: [100, 0, 200, 100] },
@@ -62,7 +64,9 @@ export default function App() {
   });
 
   const [history, setHistory] = useState([]);
+  const [changeResult, setChangeResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [focusedClass, setFocusedClass] = useState(null);
 
   function handleSelectPreset(presetKey) {
@@ -84,65 +88,49 @@ export default function App() {
   }
 
   async function handleQuestionSubmit(question) {
-    if (!currentImage?.dataUrl) {
+    if (!currentImage?.dataUrl && !currentImage?.file) {
       setIsUploadOpen(true);
       return;
     }
 
     setLoading(true);
+    setError(null);
     const startTime = performance.now();
 
     try {
-      // If using remote preset URL without File, create a canvas dataUrl or fetch blob
-      let dataUrlToSend = currentImage.dataUrl;
-
-      if (!dataUrlToSend.startsWith("data:")) {
-        // Convert image to dataUrl via canvas for upload
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = currentImage.dataUrl;
-        await new Promise((res, rej) => {
-          img.onload = res;
-          img.onerror = rej;
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth || 800;
-        canvas.height = img.naturalHeight || 600;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        dataUrlToSend = canvas.toDataURL("image/jpeg", 0.9);
-      }
-
-      const result = await queryImage(dataUrlToSend, question);
+      const result = await queryImage(currentImage.file || currentImage.dataUrl, question);
       const latencyMs = Math.round(performance.now() - startTime);
-
       const newAnswer = {
         question,
         answer: result.answer,
-        evidence: result.evidence?.length
-          ? result.evidence
-          : ["Agriculture", "Water", "Vegetation"],
-        groundedPct: "95.8% Grounded",
+        evidence: result.evidence || [],
+        groundedPct: "Backend grounded",
         latency: `${latencyMs}ms`,
       };
 
-      if (result.grounding?.tiles?.length) {
-        setGrounding(result.grounding);
-      }
-
+      if (result.grounding) setGrounding(result.grounding);
       setHistory((prev) => [currentAnswer, ...prev]);
       setCurrentAnswer(newAnswer);
-    } catch (error) {
-      console.error("Query failed:", error);
-      const latencyMs = Math.round(performance.now() - startTime);
-      // Fallback graceful answer
-      setCurrentAnswer({
-        question,
-        answer: `Grounding analysis completed: Agricultural land (38%) and river waterways (25%) identified across the active spatial quadrant.\n\nConfidence threshold maintained at 94.2% across 16 grid regions.`,
-        evidence: ["Agriculture", "Water"],
-        groundedPct: "94.2% Grounded",
-        latency: `${latencyMs}ms`,
-      });
+    } catch (requestError) {
+      console.error("Query failed:", requestError);
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleChangeSubmit(question) {
+    const before = PRESET_IMAGES[0];
+    const after = PRESET_IMAGES[1];
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await queryChange(before.url, after.url, question);
+      setChangeResult(result);
+    } catch (requestError) {
+      console.error("Change detection failed:", requestError);
+      setError(requestError.message);
     } finally {
       setLoading(false);
     }
@@ -167,6 +155,12 @@ export default function App() {
 
         {/* Main Content View */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-5 max-w-[1720px] mx-auto w-full flex flex-col gap-4">
+          {error && (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-xs text-rose-200">
+              {error}
+            </div>
+          )}
+
           {tab === "query" ? (
             <>
               {/* Top Earth Observation Search Bar */}
@@ -221,7 +215,8 @@ export default function App() {
                 beforeDate="2019-08-14"
                 afterDate="2024-09-02"
                 loading={loading}
-                onRunComparison={(q) => handleQuestionSubmit(q)}
+                result={changeResult}
+                onRunComparison={handleChangeSubmit}
               />
             </div>
           )}

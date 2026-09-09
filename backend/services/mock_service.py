@@ -10,7 +10,10 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 from io import BytesIO
 from PIL import Image
-from .query_service import QueryRouter
+try:
+    from .query_service import QueryRouter
+except ImportError:
+    from query_service import QueryRouter
 
 
 def scale_grounding_output(
@@ -37,10 +40,7 @@ def scale_grounding_output(
     grid_rows = grid_info.get("rows", 4)
     grid_cols = grid_info.get("cols", 4)
 
-    # Calculate scale factors (internal grid to pixel coordinates)
-    # If Sai's pipeline uses a 256x256 grid internally:
-    # scale_x = original_width / 256, scale_y = original_height / 256
-    # But if it uses grid units: scale_x = original_width / grid_cols, etc.
+    # Sai's tile boxes are expressed in grid-cell units; scale them to pixels.
     scale_x = original_width / grid_cols
     scale_y = original_height / grid_rows
 
@@ -94,7 +94,7 @@ class GroundingTile:
 class GroundingResult:
     """Represents the grounding pipeline output (4x4 grid analysis)"""
 
-    GRID_SIZE = 4  # 4x4 grid to match Sai's pipeline
+    GRID_SIZE = 8  # 8x8 grid returned by the integration contract
 
     def __init__(self, image_name: str, image_width: int, image_height: int):
         self.image_name = image_name
@@ -207,8 +207,9 @@ class ChangeDetector:
         changes = []
         unchanged = 0
 
-        # Compare each tile
-        for i in range(9):
+        # Compare every tile in the 8x8 grid.
+        tile_count = min(len(before_grounding.tiles), len(after_grounding.tiles))
+        for i in range(tile_count):
             before_tile = before_grounding.tiles[i]
             after_tile = after_grounding.tiles[i]
 
@@ -225,7 +226,7 @@ class ChangeDetector:
                 unchanged += 1
 
         # Generate summary
-        change_summary = f"Detected {len(changes)} tile changes out of 9 tiles. {unchanged} tiles remained unchanged."
+        change_summary = f"Detected {len(changes)} tile changes out of {tile_count} tiles. {unchanged} tiles remained unchanged."
 
         if changes:
             change_details = []

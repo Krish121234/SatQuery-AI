@@ -55,8 +55,8 @@ export default function ViewerHUD({
   }
 
   const tiles = grounding?.tiles || [];
-  const rows = grounding?.grid?.rows || 4;
-  const cols = grounding?.grid?.cols || 4;
+  const rows = grounding?.grid?.rows || 8;
+  const cols = grounding?.grid?.cols || 8;
 
   return (
     <div className="hud-panel rounded-xl flex flex-col overflow-hidden text-slate-100 transition-all">
