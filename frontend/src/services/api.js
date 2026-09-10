@@ -73,7 +73,8 @@ export async function queryChange(beforeImage, afterImage, question = "") {
   const formData = new FormData();
   formData.append("before_file", await toUploadFile(beforeImage, "before-epoch.jpg"));
   formData.append("after_file", await toUploadFile(afterImage, "after-epoch.jpg"));
-  formData.append("question", question || "What land cover changes occurred between these epochs?");
+  formData.append("before_question", question || "What land cover changes occurred between these epochs?");
+  formData.append("after_question", question || "What land cover changes occurred between these epochs?");
   return postMultipart("/query/change", formData);
 }
 

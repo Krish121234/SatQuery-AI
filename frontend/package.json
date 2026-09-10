@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.41.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

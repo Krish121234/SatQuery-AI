@@ -6,17 +6,114 @@ import {
   Sparkles,
   Eye,
   EyeOff,
+  Layers,
 } from "lucide-react";
 
-const CLASS_THEMES = {
-  Agriculture: { border: "border-amber-400", bg: "bg-amber-400/20", text: "text-amber-300", badge: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
-  Vegetation: { border: "border-emerald-400", bg: "bg-emerald-400/20", text: "text-emerald-300", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
-  Forest: { border: "border-emerald-400", bg: "bg-emerald-400/20", text: "text-emerald-300", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
-  Water: { border: "border-cyan-400", bg: "bg-cyan-400/25", text: "text-cyan-300", badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" },
-  "Built-up": { border: "border-rose-400", bg: "bg-rose-400/20", text: "text-rose-300", badge: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
-  Urban: { border: "border-rose-400", bg: "bg-rose-400/20", text: "text-rose-300", badge: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
-  Barren: { border: "border-slate-400", bg: "bg-slate-400/20", text: "text-slate-300", badge: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
+export const CLASS_THEMES = {
+  // GeoRSCLIP Model 6 classes
+  forest: {
+    label: "Forest / Vegetation",
+    border: "border-emerald-500",
+    bg: "bg-emerald-500/25",
+    text: "text-emerald-700",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-300",
+    dot: "bg-emerald-500",
+  },
+  water_body: {
+    label: "Water Body",
+    border: "border-cyan-500",
+    bg: "bg-cyan-500/30",
+    text: "text-cyan-700",
+    badge: "bg-cyan-50 text-cyan-700 border-cyan-300",
+    dot: "bg-cyan-500",
+  },
+  urban_builtup: {
+    label: "Urban / Built-up",
+    border: "border-rose-500",
+    bg: "bg-rose-500/25",
+    text: "text-rose-700",
+    badge: "bg-rose-50 text-rose-700 border-rose-300",
+    dot: "bg-rose-500",
+  },
+  agricultural_land: {
+    label: "Agricultural Land",
+    border: "border-amber-500",
+    bg: "bg-amber-500/25",
+    text: "text-amber-700",
+    badge: "bg-amber-50 text-amber-700 border-amber-300",
+    dot: "bg-amber-500",
+  },
+  barren_land: {
+    label: "Barren Land",
+    border: "border-stone-500",
+    bg: "bg-stone-500/25",
+    text: "text-stone-700",
+    badge: "bg-stone-50 text-stone-700 border-stone-300",
+    dot: "bg-stone-500",
+  },
+  road: {
+    label: "Road / Transport",
+    border: "border-purple-500",
+    bg: "bg-purple-500/25",
+    text: "text-purple-700",
+    badge: "bg-purple-50 text-purple-700 border-purple-300",
+    dot: "bg-purple-500",
+  },
+
+  // Aliases & legacy mappings
+  agriculture: {
+    label: "Agricultural",
+    border: "border-amber-500",
+    bg: "bg-amber-500/25",
+    text: "text-amber-700",
+    badge: "bg-amber-50 text-amber-700 border-amber-300",
+    dot: "bg-amber-500",
+  },
+  vegetation: {
+    label: "Vegetation",
+    border: "border-emerald-500",
+    bg: "bg-emerald-500/25",
+    text: "text-emerald-700",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-300",
+    dot: "bg-emerald-500",
+  },
+  water: {
+    label: "Water",
+    border: "border-cyan-500",
+    bg: "bg-cyan-500/30",
+    text: "text-cyan-700",
+    badge: "bg-cyan-50 text-cyan-700 border-cyan-300",
+    dot: "bg-cyan-500",
+  },
+  "built-up": {
+    label: "Built-up",
+    border: "border-rose-500",
+    bg: "bg-rose-500/25",
+    text: "text-rose-700",
+    badge: "bg-rose-50 text-rose-700 border-rose-300",
+    dot: "bg-rose-500",
+  },
+  barren: {
+    label: "Barren",
+    border: "border-stone-500",
+    bg: "bg-stone-500/25",
+    text: "text-stone-700",
+    badge: "bg-stone-50 text-stone-700 border-stone-300",
+    dot: "bg-stone-500",
+  },
 };
+
+export function getTheme(className) {
+  if (!className) return CLASS_THEMES.barren_land;
+  const key = String(className).toLowerCase().replace(/[\s-]+/g, "_");
+  if (CLASS_THEMES[key]) return CLASS_THEMES[key];
+  if (key.includes("forest") || key.includes("veg")) return CLASS_THEMES.forest;
+  if (key.includes("water") || key.includes("lake") || key.includes("river")) return CLASS_THEMES.water_body;
+  if (key.includes("urban") || key.includes("built") || key.includes("city")) return CLASS_THEMES.urban_builtup;
+  if (key.includes("agri") || key.includes("farm")) return CLASS_THEMES.agricultural_land;
+  if (key.includes("road") || key.includes("trans")) return CLASS_THEMES.road;
+  return CLASS_THEMES.barren_land;
+}
 
 export default function ViewerHUD({
   imageSrc,
@@ -29,6 +126,7 @@ export default function ViewerHUD({
   const [band, setBand] = useState("RGB+NIR");
   const [zoom, setZoom] = useState(1);
   const [showOverlays, setShowOverlays] = useState(true);
+  const [hoveredTile, setHoveredTile] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, show: false });
   const [coordsText, setCoordsText] = useState("34°03'21\"N, 118°14'09\"W");
 
@@ -48,6 +146,7 @@ export default function ViewerHUD({
 
   function handleMouseLeave() {
     setMousePos((prev) => ({ ...prev, show: false }));
+    setHoveredTile(null);
   }
 
   const tiles = grounding?.tiles || [];
@@ -57,23 +156,26 @@ export default function ViewerHUD({
   return (
     <div className="earth-panel flex flex-col overflow-hidden text-[#313647] transition-all">
       {/* Top Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e0d6] bg-[#f5f3ea]/50 px-3.5 py-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-[#435663]/70 font-medium">
-            RGB+NIR • 0.50 m/px
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e0d6] bg-[#f5f3ea]/60 px-3.5 py-2 text-xs">
+        <div className="flex items-center gap-2 font-mono">
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-[#435663]">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            GeoRSCLIP 8×8 (64 Tiles)
           </span>
+          <span className="text-[#435663]/40">•</span>
+          <span className="text-[11px] text-[#435663]/70">0.50 m/px GSD</span>
         </div>
 
         {/* Spectral Band Selector */}
         <div className="flex items-center gap-1.5">
-          <div className="flex rounded-full bg-white border border-[#e2e0d6] p-0.5 text-[11px] font-mono">
+          <div className="flex rounded-full bg-white border border-[#e2e0d6] p-0.5 text-[11px] font-mono shadow-sm">
             {["RGB+NIR", "SWIR", "SAR"].map((b) => (
               <button
                 key={b}
                 onClick={() => setBand(b)}
                 className={`rounded-full px-2.5 py-0.5 transition-all ${
                   band === b
-                    ? "bg-[#A3B087] text-white font-semibold shadow-sm"
+                    ? "bg-[#A3B087] text-white font-bold shadow-sm"
                     : "text-[#435663] hover:text-[#313647]"
                 }`}
               >
@@ -90,7 +192,7 @@ export default function ViewerHUD({
             title="Toggle Overlays"
             className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${
               showOverlays
-                ? "border-[#A3B087]/40 bg-[#A3B087]/10 text-[#A3B087]"
+                ? "border-[#A3B087]/40 bg-[#A3B087]/15 text-[#6c7853]"
                 : "border-[#e2e0d6] bg-white text-[#435663]/50"
             }`}
           >
@@ -98,7 +200,7 @@ export default function ViewerHUD({
           </button>
 
           {/* Zoom controls */}
-          <div className="flex items-center rounded-lg bg-white border border-[#e2e0d6] text-[#435663]">
+          <div className="flex items-center rounded-lg bg-white border border-[#e2e0d6] text-[#435663] shadow-sm">
             <button
               onClick={() => setZoom((z) => Math.min(z + 0.25, 2.5))}
               className="p-1 hover:text-[#A3B087] transition"
@@ -106,7 +208,9 @@ export default function ViewerHUD({
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
-            <span className="px-1 font-mono text-[10px] text-[#313647] font-medium">{Math.round(zoom * 100)}%</span>
+            <span className="px-1 font-mono text-[10px] text-[#313647] font-bold">
+              {Math.round(zoom * 100)}%
+            </span>
             <button
               onClick={() => setZoom((z) => Math.max(z - 0.25, 0.75))}
               className="p-1 hover:text-[#A3B087] transition"
@@ -119,7 +223,7 @@ export default function ViewerHUD({
           <button
             onClick={() => setZoom(1)}
             title="Reset View"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e2e0d6] bg-white text-[#435663] hover:text-[#A3B087] transition"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e2e0d6] bg-white text-[#435663] hover:text-[#A3B087] transition shadow-sm"
           >
             <Maximize2 className="h-3 w-3" />
           </button>
@@ -131,75 +235,103 @@ export default function ViewerHUD({
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative flex-1 min-h-[440px] max-h-[560px] bg-[#f0ede4] overflow-hidden select-none cursor-crosshair flex items-center justify-center"
+        className="relative flex-1 min-h-[440px] max-h-[580px] bg-[#f0ede4] overflow-hidden select-none cursor-crosshair flex items-center justify-center p-4"
       >
-        {/* Image Layer */}
+        {/* Scaled Image & Overlay Container */}
         <div
           style={{
             transform: `scale(${zoom})`,
             transition: "transform 0.15s ease-out",
           }}
-          className="relative max-h-full max-w-full flex items-center justify-center"
+          className="relative inline-block max-h-full max-w-full"
         >
           {imageSrc ? (
-            <img
-              src={imageSrc}
-              alt="Satellite observation"
-              className={`max-h-[480px] w-auto rounded-lg object-contain border border-[#e2e0d6] shadow-lg transition-all duration-300 ${
-                band === "SWIR"
-                  ? "hue-rotate-90 contrast-125 saturate-150"
-                  : band === "SAR"
-                  ? "grayscale contrast-200 brightness-90"
-                  : ""
-              }`}
-            />
+            <div className="relative inline-block overflow-hidden rounded-lg border border-[#e2e0d6] shadow-xl">
+              <img
+                src={imageSrc}
+                alt="Satellite observation"
+                className={`max-h-[460px] max-w-full w-auto object-contain block transition-all duration-300 ${
+                  band === "SWIR"
+                    ? "hue-rotate-90 contrast-125 saturate-150"
+                    : band === "SAR"
+                    ? "grayscale contrast-200 brightness-90"
+                    : ""
+                }`}
+              />
+
+              {/* Grounding Overlay Grid exactly mapped over the image */}
+              {showOverlays && tiles.length > 0 && (
+                <div
+                  className="absolute inset-0 grid pointer-events-auto"
+                  style={{
+                    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                    gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {tiles.map((tile, i) => {
+                    const theme = getTheme(tile.class);
+                    const isFocused = focusedClass
+                      ? String(tile.class).toLowerCase() === String(focusedClass).toLowerCase()
+                      : true;
+                    const isHovered = hoveredTile?.tile_id === tile.tile_id;
+
+                    return (
+                      <div
+                        key={tile.tile_id ?? i}
+                        onMouseEnter={() => {
+                          setHoveredTile(tile);
+                          onHoverTile?.(tile);
+                        }}
+                        className={`relative border transition-all duration-150 ${
+                          theme.border
+                        } ${
+                          isFocused
+                            ? `${theme.bg} ${isHovered ? "opacity-100 ring-2 ring-white shadow-lg z-10" : "opacity-85"}`
+                            : "opacity-15 border-slate-400/40 bg-transparent"
+                        }`}
+                      >
+                        {/* Compact Badge on Top-Left */}
+                        <div className="absolute top-0.5 left-0.5 pointer-events-none">
+                          <span
+                            className={`rounded px-1 py-0.2 text-[8px] font-mono font-bold tracking-tight border shadow-xs ${theme.badge}`}
+                          >
+                            {tile.class?.replace("_", " ")?.toUpperCase()}: {Math.round(tile.confidence * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-[#435663]/50">
               <Sparkles className="h-10 w-10 text-[#A3B087]/40 mb-3" />
-              <p className="text-sm text-[#435663]/70">Ready for satellite image</p>
+              <p className="text-sm text-[#435663]/70 font-semibold">Ready for satellite image</p>
               <p className="text-xs text-[#435663]/40 mt-1">Upload an image or select a preset above</p>
             </div>
           )}
-
-          {/* Grounding Overlay Grid */}
-          {showOverlays && tiles.length > 0 && (
-            <div
-              className="absolute inset-0 grid rounded-lg pointer-events-none"
-              style={{
-                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-              }}
-            >
-              {tiles.map((tile, i) => {
-                const theme = CLASS_THEMES[tile.class] || CLASS_THEMES.Agriculture;
-                const isFocused = focusedClass
-                  ? tile.class.toLowerCase() === focusedClass.toLowerCase()
-                  : true;
-
-                return (
-                  <div
-                    key={tile.tile_id ?? i}
-                    className={`relative border transition-all duration-200 m-[1px] rounded-sm ${
-                      theme.border
-                    } ${
-                      isFocused
-                        ? `${theme.bg} opacity-90`
-                        : "opacity-20 border-slate-700/50 bg-transparent"
-                    }`}
-                  >
-                    <div className="absolute top-1 left-1 flex items-center gap-1">
-                      <span
-                        className={`rounded px-1 py-0.2 text-[9px] font-mono font-bold tracking-tight border ${theme.badge}`}
-                      >
-                        {tile.class?.toUpperCase()}: {Math.round(tile.confidence * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
+
+        {/* Hovered Tile Details Floater */}
+        {hoveredTile && (
+          <div className="pointer-events-none absolute top-4 left-4 z-30 rounded-xl bg-white/95 border border-[#e2e0d6] p-3 shadow-lg backdrop-blur-md font-mono text-xs max-w-xs animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between gap-3 border-b border-[#e2e0d6] pb-1.5 mb-1.5">
+              <span className="font-bold text-[#313647]">Tile #{hoveredTile.tile_id}</span>
+              <span className="rounded bg-[#A3B087]/20 text-[#54603e] px-1.5 py-0.5 text-[10px] font-bold">
+                {(hoveredTile.confidence * 100).toFixed(1)}% Confidence
+              </span>
+            </div>
+            <div className="flex flex-col gap-1 text-[11px] text-[#435663]">
+              <div>
+                Class: <strong className="text-[#313647]">{hoveredTile.class}</strong>
+              </div>
+              <div className="text-[10px] text-[#435663]/70">
+                BBox: [{hoveredTile.bbox?.join(", ")}]
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cursor Crosshair & Coordinate Tooltip */}
         {mousePos.show && (
@@ -218,7 +350,7 @@ export default function ViewerHUD({
               style={{ left: `${mousePos.x}px`, top: `${mousePos.y}px` }}
             >
               <div className="h-10 w-10 rounded-full border border-[#A3B087]/40"></div>
-              <div className="absolute h-2 w-2 rounded-full bg-[#A3B087]/70"></div>
+              <div className="absolute h-2 w-2 rounded-full bg-[#A3B087]/80"></div>
             </div>
 
             <div
@@ -233,25 +365,33 @@ export default function ViewerHUD({
           </>
         )}
 
-        {/* Bottom Legend Banner */}
-        <div className="absolute bottom-2.5 left-3 right-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/85 border border-[#e2e0d6] px-3 py-1.5 backdrop-blur-md text-[11px] font-mono">
+        {/* Bottom Legend Banner for 6 RS Classes */}
+        <div className="absolute bottom-2.5 left-3 right-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/90 border border-[#e2e0d6] px-3 py-1.5 backdrop-blur-md text-[11px] font-mono shadow-sm">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[#435663]/60 uppercase tracking-wider font-semibold">Legend:</span>
-            <span className="flex items-center gap-1 text-amber-600">
-              <span className="h-2 w-2 rounded-full bg-amber-400"></span>
-              <span>Agricultural</span>
-            </span>
-            <span className="flex items-center gap-1 text-emerald-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span className="text-[#435663]/60 uppercase tracking-wider font-bold">Legend:</span>
+            <span className="flex items-center gap-1 text-emerald-700">
+              <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
               <span>Forest</span>
             </span>
-            <span className="flex items-center gap-1 text-cyan-600">
-              <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
-              <span>Water</span>
+            <span className="flex items-center gap-1 text-cyan-700">
+              <span className="h-2 w-2 rounded-full bg-cyan-500"></span>
+              <span>Water Body</span>
             </span>
-            <span className="flex items-center gap-1 text-rose-600">
-              <span className="h-2 w-2 rounded-full bg-rose-400"></span>
-              <span>Built-up</span>
+            <span className="flex items-center gap-1 text-rose-700">
+              <span className="h-2 w-2 rounded-full bg-rose-500"></span>
+              <span>Urban/Built-up</span>
+            </span>
+            <span className="flex items-center gap-1 text-amber-700">
+              <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+              <span>Agricultural</span>
+            </span>
+            <span className="flex items-center gap-1 text-stone-700">
+              <span className="h-2 w-2 rounded-full bg-stone-500"></span>
+              <span>Barren Land</span>
+            </span>
+            <span className="flex items-center gap-1 text-purple-700">
+              <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+              <span>Road / Transport</span>
             </span>
           </div>
         </div>

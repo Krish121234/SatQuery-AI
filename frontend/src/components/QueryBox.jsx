@@ -78,6 +78,16 @@ export default function QueryBox({
           >
             Urban Port
           </button>
+          <button
+            onClick={() => onSelectPreset?.("forest")}
+            className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all ${
+              selectedPreset === "forest"
+                ? "bg-[#A3B087]/15 text-[#A3B087] border border-[#A3B087]/40 font-semibold"
+                : "text-[#435663] hover:text-[#313647] hover:bg-[#f5f3ea] border border-[#e2e0d6]"
+            }`}
+          >
+            Forest & River
+          </button>
         </div>
 
         {/* Upload button */}

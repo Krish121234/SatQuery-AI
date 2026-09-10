@@ -1,5 +1,6 @@
 import React from "react";
-import { Activity, BarChart3, Droplets, Leaf, Building2, Layers } from "lucide-react";
+import { Activity, Droplets, Leaf, Building2, Trees, ShieldAlert, Navigation } from "lucide-react";
+import { getTheme, CLASS_THEMES } from "./ViewerHUD";
 
 export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass }) {
   const tiles = grounding?.tiles || [];
@@ -46,75 +47,99 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
 
   // Calculate percentages from real tile data
   const classCounts = tiles.reduce((acc, tile) => {
-    const cls = tile.class || "Other";
-    acc[cls] = (acc[cls] || 0) + 1;
+    const rawCls = tile.class || "barren_land";
+    const key = rawCls.toLowerCase().replace(/[\s-]+/g, "_");
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
 
-  const agriPct = Math.round(((classCounts.Agriculture || 0) / totalTiles) * 100);
-  const forestPct = Math.round(((classCounts.Vegetation || classCounts.Forest || 0) / totalTiles) * 100);
-  const waterPct = Math.round(((classCounts.Water || 0) / totalTiles) * 100);
-  const urbanPct = Math.round(((classCounts["Built-up"] || classCounts.Urban || 0) / totalTiles) * 100);
-  const barrenPct = Math.round(((classCounts.Barren || 0) / totalTiles) * 100);
-
-  // Approximate metrics
   const totalAreaKm2 = 1061.5;
-  const agriArea = ((agriPct / 100) * totalAreaKm2).toFixed(1);
-  const forestArea = ((forestPct / 100) * totalAreaKm2).toFixed(1);
-  const waterArea = ((waterPct / 100) * totalAreaKm2).toFixed(1);
-  const urbanArea = ((urbanPct / 100) * totalAreaKm2).toFixed(1);
 
-  // Spectral indices dynamic estimates
-  const ndviScore = (0.35 + (forestPct / 100) * 0.5 + (agriPct / 100) * 0.3).toFixed(2);
-  const ndwiScore = (-0.5 + (waterPct / 100) * 0.9).toFixed(2);
-  const smiScore = Math.min(Math.round(30 + (waterPct + agriPct) * 0.6), 95);
-
-  const categories = [
+  // 6 RS Categories from GeoRSCLIP
+  const allCategories = [
     {
-      id: "Agriculture",
-      label: "Agricultural Parcels",
-      pct: agriPct,
-      confidence: `${Math.round(((classCounts.Agriculture || 0) / (totalTiles || 1)) * 95 + 5)}%`,
-      area: `${agriArea} km²`,
-      subMetric: `Parcels: ${classCounts.Agriculture || 0} tiles`,
-      barColor: "from-amber-300 to-amber-500",
-      textColor: "text-amber-600",
-      dotColor: "bg-amber-400",
+      id: "forest",
+      aliases: ["forest", "vegetation"],
+      label: "Dense Forest / Vegetation",
+      barColor: "from-emerald-400 to-emerald-600",
+      textColor: "text-emerald-700",
+      dotColor: "bg-emerald-500",
+      icon: Trees,
     },
     {
-      id: "Vegetation",
-      label: "Dense Forest Canopy",
-      pct: forestPct,
-      confidence: `${Math.round(((classCounts.Vegetation || 0) / (totalTiles || 1)) * 92 + 8)}%`,
-      area: `${forestArea} km²`,
-      subMetric: `Biomass: ${classCounts.Vegetation || 0} tiles`,
-      barColor: "from-emerald-300 to-emerald-500",
-      textColor: "text-emerald-600",
-      dotColor: "bg-emerald-400",
-    },
-    {
-      id: "Water",
+      id: "water_body",
+      aliases: ["water_body", "water"],
       label: "Water Bodies & Basins",
-      pct: waterPct,
-      confidence: `${Math.round(((classCounts.Water || 0) / (totalTiles || 1)) * 90 + 10)}%`,
-      area: `${waterArea} km²`,
-      subMetric: `Hydro: ${classCounts.Water || 0} tiles`,
-      barColor: "from-cyan-300 to-cyan-500",
-      textColor: "text-cyan-600",
-      dotColor: "bg-cyan-400",
+      barColor: "from-cyan-400 to-cyan-600",
+      textColor: "text-cyan-700",
+      dotColor: "bg-cyan-500",
+      icon: Droplets,
     },
     {
-      id: "Built-up",
-      label: "Urban & Industrial",
-      pct: urbanPct,
-      confidence: `${Math.round(((classCounts["Built-up"] || 0) / (totalTiles || 1)) * 88 + 12)}%`,
-      area: `${urbanArea} km²`,
-      subMetric: `Structures: ${classCounts["Built-up"] || 0} tiles`,
-      barColor: "from-rose-300 to-rose-500",
-      textColor: "text-rose-600",
-      dotColor: "bg-rose-400",
+      id: "urban_builtup",
+      aliases: ["urban_builtup", "built-up", "urban"],
+      label: "Urban & Built-up",
+      barColor: "from-rose-400 to-rose-600",
+      textColor: "text-rose-700",
+      dotColor: "bg-rose-500",
+      icon: Building2,
+    },
+    {
+      id: "agricultural_land",
+      aliases: ["agricultural_land", "agriculture"],
+      label: "Agricultural Farmland",
+      barColor: "from-amber-400 to-amber-600",
+      textColor: "text-amber-700",
+      dotColor: "bg-amber-500",
+      icon: Leaf,
+    },
+    {
+      id: "barren_land",
+      aliases: ["barren_land", "barren"],
+      label: "Barren & Bare Soil",
+      barColor: "from-stone-400 to-stone-600",
+      textColor: "text-stone-700",
+      dotColor: "bg-stone-500",
+      icon: ShieldAlert,
+    },
+    {
+      id: "road",
+      aliases: ["road", "transport"],
+      label: "Roads & Transit Networks",
+      barColor: "from-purple-400 to-purple-600",
+      textColor: "text-purple-700",
+      dotColor: "bg-purple-500",
+      icon: Navigation,
     },
   ];
+
+  const categories = allCategories.map((cat) => {
+    let count = 0;
+    for (const alias of cat.aliases) {
+      if (classCounts[alias]) {
+        count += classCounts[alias];
+      }
+    }
+    const pct = Math.round((count / totalTiles) * 100);
+    const area = ((pct / 100) * totalAreaKm2).toFixed(1);
+
+    return {
+      ...cat,
+      count,
+      pct,
+      area: `${area} km²`,
+      subMetric: `${count} / ${totalTiles} tiles`,
+    };
+  });
+
+  const forestPct = categories.find((c) => c.id === "forest")?.pct || 0;
+  const agriPct = categories.find((c) => c.id === "agricultural_land")?.pct || 0;
+  const waterPct = categories.find((c) => c.id === "water_body")?.pct || 0;
+
+  // Spectral indices dynamic estimates from real land cover fractions
+  const ndviScore = Math.min(Math.max((0.15 + (forestPct / 100) * 0.65 + (agriPct / 100) * 0.35).toFixed(2), 0.05), 0.95);
+  const ndwiScore = ((-0.45 + (waterPct / 100) * 1.1)).toFixed(2);
+  const smiScore = Math.min(Math.round(25 + (waterPct * 0.7 + agriPct * 0.4 + forestPct * 0.2)), 98);
 
   return (
     <aside className="w-full lg:w-80 flex flex-col gap-4">
@@ -135,23 +160,32 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
         </div>
 
         {/* Classification Progress Rows */}
-        <div className="flex flex-col gap-3.5 mt-1">
+        <div className="flex flex-col gap-2.5 mt-1 max-h-[380px] overflow-y-auto pr-1">
           {categories.map((cat) => {
-            const isFocused = focusedClass === cat.id;
+            const isFocused =
+              focusedClass &&
+              (focusedClass.toLowerCase() === cat.id || cat.aliases.includes(focusedClass.toLowerCase()));
+
             return (
               <div
                 key={cat.id}
-                onClick={() => onFilterClass?.(cat.id === focusedClass ? null : cat.id)}
+                onClick={() => {
+                  if (isFocused) {
+                    onFilterClass?.(null);
+                  } else {
+                    onFilterClass?.(cat.id);
+                  }
+                }}
                 className={`group cursor-pointer rounded-lg p-2 transition-all ${
                   isFocused
-                    ? "bg-[#A3B087]/10 border border-[#A3B087]/40 shadow-[0_2px_8px_rgba(163,176,135,0.12)]"
+                    ? "bg-[#A3B087]/15 border border-[#A3B087]/50 shadow-[0_2px_8px_rgba(163,176,135,0.15)]"
                     : "hover:bg-[#f5f3ea] border border-transparent"
                 }`}
               >
                 <div className="flex items-center justify-between text-xs font-medium">
                   <div className="flex items-center gap-1.5">
                     <span className={`h-2 w-2 rounded-full ${cat.dotColor}`}></span>
-                    <span className="text-[#313647]">{cat.label}</span>
+                    <span className="text-[#313647] font-semibold">{cat.label}</span>
                   </div>
                   <span className={`font-mono font-bold ${cat.textColor}`}>
                     {cat.pct}%
@@ -162,14 +196,14 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
                 <div className="mt-1.5 h-1.5 w-full rounded-full bg-[#f0ede4] overflow-hidden border border-[#e2e0d6]">
                   <div
                     className={`h-full rounded-full bg-gradient-to-r ${cat.barColor} transition-all duration-500`}
-                    style={{ width: `${cat.pct}%` }}
+                    style={{ width: `${Math.max(cat.pct, cat.count > 0 ? 3 : 0)}%` }}
                   ></div>
                 </div>
 
                 {/* Submetrics */}
-                <div className="mt-1.5 flex items-center justify-between text-[11px] font-mono text-[#435663]/60">
+                <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-[#435663]/60">
                   <span>Coverage: {cat.area}</span>
-                  <span className="font-sans">{cat.subMetric}</span>
+                  <span>{cat.subMetric}</span>
                 </div>
               </div>
             );
@@ -189,11 +223,11 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
         </div>
 
         {/* Circular Dials Grid */}
-        <div className="grid grid-cols-3 gap-2.5 pt-1">
+        <div className="grid grid-cols-3 gap-2 pt-1">
           {/* NDVI Dial */}
-          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2.5 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2 text-center">
             <span className="text-[10px] font-mono font-semibold text-[#435663]/70">NDVI</span>
-            <div className="relative my-2 flex h-14 w-14 items-center justify-center">
+            <div className="relative my-1.5 flex h-12 w-12 items-center justify-center">
               <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
                 <path
                   className="text-[#e2e0d6]"
@@ -212,19 +246,19 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className="absolute font-mono text-[11px] font-bold text-emerald-600">
+              <span className="absolute font-mono text-[10px] font-bold text-emerald-600">
                 {ndviScore}
               </span>
             </div>
-            <span className="text-[9px] font-mono font-bold text-emerald-600 uppercase">
-              {Number(ndviScore) > 0.5 ? "HIGH VEG" : "MODERATE"}
+            <span className="text-[8px] font-mono font-bold text-emerald-600 uppercase">
+              {Number(ndviScore) > 0.45 ? "HIGH VEG" : "MODERATE"}
             </span>
           </div>
 
           {/* NDWI Dial */}
-          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2.5 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2 text-center">
             <span className="text-[10px] font-mono font-semibold text-[#435663]/70">NDWI</span>
-            <div className="relative my-2 flex h-14 w-14 items-center justify-center">
+            <div className="relative my-1.5 flex h-12 w-12 items-center justify-center">
               <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
                 <path
                   className="text-[#e2e0d6]"
@@ -243,19 +277,19 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className="absolute font-mono text-[11px] font-bold text-cyan-600">
+              <span className="absolute font-mono text-[10px] font-bold text-cyan-600">
                 {ndwiScore}
               </span>
             </div>
-            <span className="text-[9px] font-mono font-bold text-cyan-600 uppercase">
+            <span className="text-[8px] font-mono font-bold text-cyan-600 uppercase">
               {Number(ndwiScore) > 0 ? "WATER" : "LAND"}
             </span>
           </div>
 
           {/* SMI Dial */}
-          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2.5 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-[#f5f3ea] border border-[#e2e0d6] p-2 text-center">
             <span className="text-[10px] font-mono font-semibold text-[#435663]/70">SMI</span>
-            <div className="relative my-2 flex h-14 w-14 items-center justify-center">
+            <div className="relative my-1.5 flex h-12 w-12 items-center justify-center">
               <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
                 <path
                   className="text-[#e2e0d6]"
@@ -274,11 +308,11 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className="absolute font-mono text-[11px] font-bold text-amber-600">
+              <span className="absolute font-mono text-[10px] font-bold text-amber-600">
                 {smiScore}%
               </span>
             </div>
-            <span className="text-[9px] font-mono font-bold text-amber-600 uppercase">
+            <span className="text-[8px] font-mono font-bold text-amber-600 uppercase">
               MOISTURE
             </span>
           </div>

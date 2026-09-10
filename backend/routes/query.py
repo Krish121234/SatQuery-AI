@@ -1,14 +1,14 @@
 """
-Query routes - handles satellite image querying and change detection
+Query routes - handles satellite image querying and change detection with real GeoRSCLIP
 """
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 try:
-    from ..services.mock_service import MockPipeline
+    from ..services.grounding_service import GroundingService
 except ImportError:
-    from services.mock_service import MockPipeline
+    from services.grounding_service import GroundingService
 
 router = APIRouter()
-pipeline = MockPipeline()
+service = GroundingService()
 
 
 @router.post("/query")
@@ -19,16 +19,16 @@ async def query_image(
     """
     Process a satellite image query.
 
-    Takes an image and a user question, runs through the mock pipeline:
-    1. Sai's grounding pipeline - analyzes the image
-    2. Sid's Gemini integration - answers the question
+    Takes an image and a user question, runs through the real GeoRSCLIP pipeline:
+    1. Sai's GeoRSCLIP grounding pipeline - 8x8 (64-tile) zero-shot satellite land-cover classification
+    2. Sid's Gemini 2.0 integration - answers the question grounded in tile telemetry
 
     Args:
         question: User's natural language question about the image
         file: Satellite image file to analyze
 
     Returns:
-        dict: Grounding data (tiles with classifications) and answer
+        dict: Grounding data (64 tiles with classifications, confidences, bboxes) and answer
     """
     try:
         # Read the uploaded file
@@ -37,11 +37,11 @@ async def query_image(
         if not contents:
             raise HTTPException(status_code=400, detail="File is empty")
 
-        # Process through pipeline
-        result = pipeline.process_query(
+        # Process through real GeoRSCLIP pipeline
+        result = service.process_query(
             image_data=contents,
             question=question,
-            filename=file.filename
+            filename=file.filename or "satellite_image.jpg"
         )
 
         return result
@@ -60,10 +60,10 @@ async def detect_change(
     """
     Detect changes between two satellite images (before/after).
 
-    Takes two images and optional questions, runs through the mock pipeline:
-    1. Process both images through grounding pipeline
-    2. Compare the grids and detect changes
-    3. Return a natural language summary of changes
+    Takes two images and optional questions, runs through the GeoRSCLIP pipeline:
+    1. Process both images through GeoRSCLIP 8x8 zero-shot classification
+    2. Compare tile-by-tile transitions and evaluate flood flips
+    3. Return structured change telemetry and natural language summary
 
     Args:
         before_question: Question about the before image
@@ -82,14 +82,14 @@ async def detect_change(
         if not before_contents or not after_contents:
             raise HTTPException(status_code=400, detail="One or both files are empty")
 
-        # Process through pipeline
-        result = pipeline.detect_changes(
+        # Process through real pipeline
+        result = service.detect_changes(
             before_image=before_contents,
             after_image=after_contents,
             before_question=before_question,
             after_question=after_question,
-            before_filename=before_file.filename,
-            after_filename=after_file.filename
+            before_filename=before_file.filename or "before_epoch.jpg",
+            after_filename=after_file.filename or "after_epoch.jpg"
         )
 
         return result
