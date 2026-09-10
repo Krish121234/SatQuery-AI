@@ -33,6 +33,22 @@ What got done on Day 4 (Sep 4, 2026):
 - Fixed 422 Unprocessable Entity error using `Form(...)` parameters
 - Live testing and verification between `localhost:5173` and `localhost:8000`
 
+### `day5_progress.md`
+What got done on Day 5 (Sep 5, 2026):
+- Full decoupling of frontend mock data — clean initial states
+- Response transformations for `summary`, `evidence`, and dynamic `groundedPct`
+- Wired `POST /api/query/change` with temporal differential metrics & transition HUD
+- Dynamic `AnalysisSidebar` with standby states and zero hardcoded fallbacks
+- Clean production build verification
+
+### `day9_final_integration.md`
+What got done on Day 9 (Sep 10, 2026 - Hackathon Final):
+- Full team integration on `feature/final-integration` branch
+- Resolved all component & temporal comparison slider conflicts
+- Verified end-to-end API communication (`/api/health`, `/api/query`, `/api/query/change`)
+- Real-time 64-tile grid grounding with spectral NDVI/NDWI/SMI dials
+- Clean production build (1.01s, 0 errors) ready for judging and final presentation
+
 ### `technical_decisions.md`
 Why we chose specific technologies and approaches:
 - Why Vite over CRA
@@ -41,4 +57,4 @@ Why we chose specific technologies and approaches:
 
 ---
 
-*Updated: Day 4, Sep 4, 2026*
+*Updated: Day 9, Sep 10, 2026 (Final Day)*

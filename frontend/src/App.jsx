@@ -137,7 +137,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950 bg-cyber-grid">
+    <div className="min-h-screen bg-[#FFFCF0] text-[#313647] flex flex-col font-sans selection:bg-[#A3B087] selection:text-white">
       {/* Top Aerospace Telemetry Header */}
       <Header
         tab={tab}
