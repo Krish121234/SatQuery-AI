@@ -12,6 +12,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Info,
 } from "lucide-react";
 import L from "leaflet";
 
@@ -25,7 +26,6 @@ export const SATELLITE_BOOKMARKS = [
     lng: -121.6864,
     zoom: 14,
     desc: "Intensive agricultural grid, irrigation canals, and river delta channels",
-    sampleImage: "/samples/delta_agriculture.jpg",
   },
   {
     id: "flood",
@@ -35,7 +35,6 @@ export const SATELLITE_BOOKMARKS = [
     lng: 68.0337,
     zoom: 13,
     desc: "Monsoon flood inundation zone along the historic Indus River corridor",
-    sampleImage: "/samples/flood_after.jpg",
   },
   {
     id: "port",
@@ -45,7 +44,6 @@ export const SATELLITE_BOOKMARKS = [
     lng: -118.2165,
     zoom: 14,
     desc: "Major container terminals, logistics berths, breakwaters, and urban coastline",
-    sampleImage: "/samples/urban_port.jpg",
   },
   {
     id: "forest",
@@ -55,7 +53,6 @@ export const SATELLITE_BOOKMARKS = [
     lng: -121.9000,
     zoom: 13,
     desc: "Dense coniferous canopy, riparian river valley, and alpine terrain",
-    sampleImage: "/samples/forest_river.jpg",
   },
   {
     id: "dubai",
@@ -95,33 +92,42 @@ export const SATELLITE_BOOKMARKS = [
   },
 ];
 
-export default function MapView({ onSendToScanner }) {
+export default function MapView({
+  viewport = { lat: 38.1636, lng: -121.6864, zoom: 14, bookmarkId: "delta" },
+  onViewportChange,
+  onSendToScanner,
+}) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [currentCoords, setCurrentCoords] = useState({
-    lat: 38.1636,
-    lng: -121.6864,
-    zoom: 14,
+    lat: viewport.lat || 38.1636,
+    lng: viewport.lng || -121.6864,
+    zoom: viewport.zoom || 14,
   });
-  const [activeBookmark, setActiveBookmark] = useState(SATELLITE_BOOKMARKS[0]);
+  const [activeBookmark, setActiveBookmark] = useState(
+    SATELLITE_BOOKMARKS.find((b) => b.id === viewport.bookmarkId) || null
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [capturing, setCapturing] = useState(false);
-  const [layerType, setLayerType] = useState("esri"); // "esri" | "osm" | "topo"
+  const [layerType, setLayerType] = useState("esri"); // "esri" (pure optical) | "hybrid" (with reference labels)
 
-  // Initialize Leaflet map
+  // Initialize Leaflet map with persistent viewport
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Check if map already exists
     if (!mapInstanceRef.current) {
+      const initialLat = viewport.lat || 38.1636;
+      const initialLng = viewport.lng || -121.6864;
+      const initialZoom = viewport.zoom || 14;
+
       const map = L.map(mapContainerRef.current, {
-        center: [currentCoords.lat, currentCoords.lng],
-        zoom: currentCoords.zoom,
+        center: [initialLat, initialLng],
+        zoom: initialZoom,
         zoomControl: false,
         attributionControl: false,
       });
 
-      // Esri ArcGIS World Imagery satellite tiles (High-resolution authentic orbital view)
+      // Esri ArcGIS World Imagery satellite tiles (pure high-resolution optical view)
       const esriTileLayer = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -130,23 +136,27 @@ export default function MapView({ onSendToScanner }) {
         }
       ).addTo(map);
 
-      // Save references
       mapInstanceRef.current = map;
-      mapInstanceRef.current._satelliteLayer = esriTileLayer;
+      mapInstanceRef.current._baseLayer = esriTileLayer;
+      mapInstanceRef.current._labelLayer = null;
 
-      // Track pan and zoom events
+      // Track pan and zoom events and notify parent to preserve location
       map.on("move", () => {
         const center = map.getCenter();
-        setCurrentCoords({
+        const newCoords = {
           lat: parseFloat(center.lat.toFixed(4)),
           lng: parseFloat(center.lng.toFixed(4)),
           zoom: map.getZoom(),
+        };
+        setCurrentCoords(newCoords);
+        onViewportChange?.({
+          ...newCoords,
+          bookmarkId: activeBookmark?.id || null,
         });
       });
     }
 
     return () => {
-      // Cleanup on unmount
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -160,30 +170,19 @@ export default function MapView({ onSendToScanner }) {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
 
-    if (map._satelliteLayer) {
-      map.removeLayer(map._satelliteLayer);
-    }
-
-    let newLayer;
-    if (type === "esri") {
-      newLayer = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 18, crossOrigin: true }
-      );
-    } else if (type === "osm") {
-      newLayer = L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { maxZoom: 18, crossOrigin: true }
-      );
+    if (type === "hybrid") {
+      if (!map._labelLayer) {
+        map._labelLayer = L.tileLayer(
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+          { maxZoom: 18, crossOrigin: true }
+        ).addTo(map);
+      }
     } else {
-      newLayer = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 18, crossOrigin: true }
-      );
+      if (map._labelLayer) {
+        map.removeLayer(map._labelLayer);
+        map._labelLayer = null;
+      }
     }
-
-    newLayer.addTo(map);
-    map._satelliteLayer = newLayer;
   }
 
   // Jump to bookmark
@@ -194,6 +193,12 @@ export default function MapView({ onSendToScanner }) {
         duration: 1.5,
       });
     }
+    onViewportChange?.({
+      lat: bm.lat,
+      lng: bm.lng,
+      zoom: bm.zoom,
+      bookmarkId: bm.id,
+    });
   }
 
   // Handle Search / Coordinate input
@@ -244,22 +249,17 @@ export default function MapView({ onSendToScanner }) {
     }
   }
 
-  // Calculate Mercator Tile XY
-  function getTileXY(lat, lon, zoom) {
+  // Calculate Mercator Tile coordinates & exact pixel offsets
+  function getMercatorPixel(lat, lon, zoom) {
     const latRad = (lat * Math.PI) / 180;
     const n = Math.pow(2, zoom);
-    const x = Math.floor(((lon + 180) / 360) * n);
-    const y = Math.floor(
-      ((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n
-    );
-    return { x, y, z: zoom };
+    const x = ((lon + 180) / 360) * n * 256;
+    const y =
+      ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *
+      n *
+      256;
+    return { x, y };
   }
-
-  const currentTile = getTileXY(
-    currentCoords.lat,
-    currentCoords.lng,
-    currentCoords.zoom
-  );
 
   // Approximate Ground Sample Distance (GSD) at latitude
   const gsdMeters = (
@@ -267,90 +267,92 @@ export default function MapView({ onSendToScanner }) {
     Math.pow(2, currentCoords.zoom)
   ).toFixed(2);
 
-  // Capture current satellite view and dispatch to Scanner
+  // Capture current satellite view and dispatch to Scanner using clean Blob-based CORS canvas compositing
   async function handleCaptureToScanner() {
     setCapturing(true);
 
     try {
-      // If we are at a known bookmark with a sample image, send directly
-      if (activeBookmark && activeBookmark.sampleImage) {
-        onSendToScanner?.({
-          name: `${activeBookmark.name} (${activeBookmark.location})`,
-          dataUrl: activeBookmark.sampleImage,
-          coords: `${Math.abs(currentCoords.lat).toFixed(2)}°${
-            currentCoords.lat >= 0 ? "N" : "S"
-          }, ${Math.abs(currentCoords.lng).toFixed(2)}°${
-            currentCoords.lng >= 0 ? "E" : "W"
-          }`,
-          file: null,
-          zoom: currentCoords.zoom,
-        });
-        setCapturing(false);
-        return;
-      }
-
-      // Build stitched 3x3 canvas of satellite tiles
+      const W = 800;
+      const H = 800;
       const canvas = document.createElement("canvas");
-      canvas.width = 768;
-      canvas.height = 768;
+      canvas.width = W;
+      canvas.height = H;
       const ctx = canvas.getContext("2d");
 
       const z = currentCoords.zoom;
-      const centerTile = getTileXY(currentCoords.lat, currentCoords.lng, z);
-      const startX = centerTile.x - 1;
-      const startY = centerTile.y - 1;
+      const centerPx = getMercatorPixel(currentCoords.lat, currentCoords.lng, z);
+      const minPxX = centerPx.x - W / 2;
+      const minPxY = centerPx.y - H / 2;
+
+      const minTileX = Math.floor(minPxX / 256);
+      const maxTileX = Math.floor((minPxX + W) / 256);
+      const minTileY = Math.floor(minPxY / 256);
+      const maxTileY = Math.floor((minPxY + H) / 256);
 
       const tilePromises = [];
 
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 3; c++) {
-          const tx = startX + c;
-          const ty = startY + r;
+      for (let ty = minTileY; ty <= maxTileY; ty++) {
+        for (let tx = minTileX; tx <= maxTileX; tx++) {
+          const drawX = tx * 256 - minPxX;
+          const drawY = ty * 256 - minPxY;
           const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
 
-          const p = new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-              ctx.drawImage(img, c * 256, r * 256, 256, 256);
-              resolve();
-            };
-            img.onerror = () => {
-              // Draw placeholder if tile load fails
-              ctx.fillStyle = "#2d3748";
-              ctx.fillRect(c * 256, r * 256, 256, 256);
-              resolve();
-            };
-            img.src = url;
-          });
+          const p = (async () => {
+            try {
+              const res = await fetch(url, { mode: "cors" });
+              if (!res.ok) throw new Error("Tile response not ok");
+              const blob = await res.blob();
+              const objUrl = URL.createObjectURL(blob);
+              const img = new Image();
+
+              await new Promise((resolve) => {
+                img.onload = () => {
+                  ctx.drawImage(img, drawX, drawY, 256, 256);
+                  URL.revokeObjectURL(objUrl);
+                  resolve();
+                };
+                img.onerror = () => {
+                  ctx.fillStyle = "#1e293b";
+                  ctx.fillRect(drawX, drawY, 256, 256);
+                  URL.revokeObjectURL(objUrl);
+                  resolve();
+                };
+                img.src = objUrl;
+              });
+            } catch (tileErr) {
+              ctx.fillStyle = "#1e293b";
+              ctx.fillRect(drawX, drawY, 256, 256);
+            }
+          })();
 
           tilePromises.push(p);
         }
       }
 
       await Promise.all(tilePromises);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+
+      const locationLabel = activeBookmark
+        ? `${activeBookmark.name} (${activeBookmark.location})`
+        : `ROI Sector (${Math.abs(currentCoords.lat).toFixed(3)}°${
+            currentCoords.lat >= 0 ? "N" : "S"
+          }, ${Math.abs(currentCoords.lng).toFixed(3)}°${
+            currentCoords.lng >= 0 ? "E" : "W"
+          })`;
 
       onSendToScanner?.({
-        name: `Satellite ROI (${currentCoords.lat}°, ${currentCoords.lng}°)`,
+        name: locationLabel,
         dataUrl,
-        coords: `${Math.abs(currentCoords.lat).toFixed(2)}°${
+        coords: `${Math.abs(currentCoords.lat).toFixed(3)}°${
           currentCoords.lat >= 0 ? "N" : "S"
-        }, ${Math.abs(currentCoords.lng).toFixed(2)}°${
+        }, ${Math.abs(currentCoords.lng).toFixed(3)}°${
           currentCoords.lng >= 0 ? "E" : "W"
         }`,
         file: null,
         zoom: currentCoords.zoom,
       });
     } catch (err) {
-      console.error("Failed to capture satellite viewport:", err);
-      // Fallback
-      onSendToScanner?.({
-        name: `Orbital Sector (${currentCoords.lat}°, ${currentCoords.lng}°)`,
-        dataUrl: "/samples/delta_agriculture.jpg",
-        coords: `${currentCoords.lat}°, ${currentCoords.lng}°`,
-        file: null,
-      });
+      console.error("Failed to capture live satellite ROI canvas:", err);
     } finally {
       setCapturing(false);
     }
@@ -403,7 +405,7 @@ export default function MapView({ onSendToScanner }) {
           {capturing ? (
             <>
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              <span>Stitching Tiles…</span>
+              <span>Capturing Orbital ROI…</span>
             </>
           ) : (
             <>
@@ -435,7 +437,7 @@ export default function MapView({ onSendToScanner }) {
                 </div>
                 <Crosshair className="absolute h-8 w-8 text-white/90 drop-shadow-md" />
                 <span className="absolute -bottom-6 font-mono text-[9px] font-bold text-white bg-black/70 px-2 py-0.5 rounded-full border border-white/20">
-                  GeoRSCLIP Target FOV
+                  GeoRSCLIP Target FOV (800×800)
                 </span>
               </div>
             </div>
@@ -455,7 +457,7 @@ export default function MapView({ onSendToScanner }) {
               </div>
             </div>
 
-            {/* Top Right: Layer Switcher */}
+            {/* Top Right: High-Res Optical Satellite Layer Switcher */}
             <div className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-xl bg-white/90 backdrop-blur-md border border-[#e2e0d6] p-1 shadow-sm">
               <button
                 onClick={() => handleChangeLayer("esri")}
@@ -464,34 +466,27 @@ export default function MapView({ onSendToScanner }) {
                     ? "bg-[#A3B087] text-white font-bold shadow-sm"
                     : "text-[#435663] hover:text-[#313647]"
                 }`}
+                title="Pure optical satellite imagery (optimal for GeoRSCLIP AI classification)"
               >
-                Esri Satellite
+                Esri Satellite (Optical)
               </button>
               <button
-                onClick={() => handleChangeLayer("osm")}
+                onClick={() => handleChangeLayer("hybrid")}
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
-                  layerType === "osm"
+                  layerType === "hybrid"
                     ? "bg-[#A3B087] text-white font-bold shadow-sm"
                     : "text-[#435663] hover:text-[#313647]"
                 }`}
+                title="Satellite imagery with borders and place labels"
               >
-                OpenStreetMap
-              </button>
-              <button
-                onClick={() => handleChangeLayer("topo")}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
-                  layerType === "topo"
-                    ? "bg-[#A3B087] text-white font-bold shadow-sm"
-                    : "text-[#435663] hover:text-[#313647]"
-                }`}
-              >
-                Topographic
+                Satellite Hybrid
               </button>
             </div>
 
-            {/* Bottom Left: Tile Grid Info */}
-            <div className="absolute bottom-3 left-3 z-10 font-mono text-[10px] text-white bg-black/60 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg">
-              Tile z/y/x: {currentTile.z}/{currentTile.y}/{currentTile.x} | EPSG:3857 Web Mercator
+            {/* Bottom Left: Grounding Note */}
+            <div className="absolute bottom-3 left-3 z-10 font-mono text-[10px] text-white bg-black/60 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+              <Info className="h-3 w-3 text-[#A3B087]" />
+              <span>Pure Optical Feed • 0.50m - 1.0m Native Spatial GSD</span>
             </div>
 
             {/* Bottom Right: Map Zoom Controls */}

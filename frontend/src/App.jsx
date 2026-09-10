@@ -87,6 +87,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [focusedClass, setFocusedClass] = useState(null);
+  const [mapViewport, setMapViewport] = useState({
+    lat: 38.1636,
+    lng: -121.6864,
+    zoom: 14,
+    bookmarkId: "delta",
+  });
 
   function handleSelectPreset(presetKey) {
     setSelectedPreset(presetKey);
@@ -285,7 +291,11 @@ export default function App() {
 
           {/* 2. Interactive Global Satellite Map View */}
           {activeNav === "map" && (
-            <MapView onSendToScanner={handleMapSendToScanner} />
+            <MapView
+              viewport={mapViewport}
+              onViewportChange={setMapViewport}
+              onSendToScanner={handleMapSendToScanner}
+            />
           )}
 
           {/* 3. Temporal Multi-Epoch Change Detection View */}

@@ -186,17 +186,27 @@ export default function ViewerHUD({
 
           <div className="h-3.5 w-[1px] bg-[#e2e0d6] mx-1"></div>
 
-          {/* Toggle Overlays */}
+          {/* Prominent Toggle Overlays Button */}
           <button
             onClick={() => setShowOverlays(!showOverlays)}
-            title="Toggle Overlays"
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${
+            title={showOverlays ? "Hide Grounding Tile Grid" : "Show Grounding Tile Grid"}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition-all shadow-sm ${
               showOverlays
-                ? "border-[#A3B087]/40 bg-[#A3B087]/15 text-[#6c7853]"
-                : "border-[#e2e0d6] bg-white text-[#435663]/50"
+                ? "bg-[#A3B087] text-white border border-[#8f9d74]"
+                : "bg-white text-[#435663] border border-[#e2e0d6] hover:bg-[#f5f3ea] hover:text-[#313647]"
             }`}
           >
-            {showOverlays ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            {showOverlays ? (
+              <>
+                <Eye className="h-3.5 w-3.5" />
+                <span>Tiles: ON</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="h-3.5 w-3.5 opacity-60" />
+                <span>Tiles: OFF</span>
+              </>
+            )}
           </button>
 
           {/* Zoom controls */}
