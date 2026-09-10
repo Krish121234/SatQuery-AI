@@ -24,7 +24,7 @@ def scale_grounding_output(
     """
     Scale Sai's grounding output to match actual image dimensions.
 
-    Sai's model operates on a grid (e.g., 4x4) with bounding boxes in normalized
+    Sai's model operates on a grid (e.g., 8x8) with bounding boxes in normalized
     or grid-relative coordinates. This function scales them to real pixel coordinates.
 
     Args:
@@ -37,8 +37,8 @@ def scale_grounding_output(
     """
     # Extract grid dimensions from the grounding output
     grid_info = grounding_json.get("grid", {})
-    grid_rows = grid_info.get("rows", 4)
-    grid_cols = grid_info.get("cols", 4)
+    grid_rows = grid_info.get("rows", 8)
+    grid_cols = grid_info.get("cols", 8)
 
     # Sai's tile boxes are expressed in grid-cell units; scale them to pixels.
     scale_x = original_width / grid_cols
@@ -50,14 +50,17 @@ def scale_grounding_output(
         scaled_tile = tile.copy()
 
         if "bbox" in tile:
-            # bbox format: [x_min, y_min, x_max, y_max]
             bbox = tile["bbox"]
-            scaled_bbox = [
-                int(bbox[0] * scale_x),
-                int(bbox[1] * scale_y),
-                int(bbox[2] * scale_x),
-                int(bbox[3] * scale_y),
-            ]
+            # If coordinates are already in pixel space, don't rescale
+            if max(bbox) > max(grid_cols, grid_rows):
+                scaled_bbox = bbox
+            else:
+                scaled_bbox = [
+                    int(bbox[0] * scale_x),
+                    int(bbox[1] * scale_y),
+                    int(bbox[2] * scale_x),
+                    int(bbox[3] * scale_y),
+                ]
             scaled_tile["bbox"] = scaled_bbox
 
         scaled_tiles.append(scaled_tile)
