@@ -4,3 +4,4 @@ python-dotenv
 python-multipart
 Pillow
 numpy
+huggingface_hub<0.26.0
