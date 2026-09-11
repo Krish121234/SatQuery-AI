@@ -4,25 +4,21 @@ Query service integrating intent routing and Gemini multimodal/LLM reasoning for
 Pipeline:
 1. Take user question and grounding JSON from the spatial vision pipeline (GeoRSCLIP)
 2. Use intent classifier to categorize intent (land_cover, location, change_detection, summary, unsupported)
-3. Call Gemini (2.5-Flash / 2.0-Flash) with spatial evidence guidelines and grounding facts
-4. Fallback to Geospatial Intelligence Synthesizer if offline
+3. Call Gemini (2.5-Flash / 2.0-Flash / 1.5-Flash) REST API with spatial evidence guidelines and grounding facts
+4. Fallback to Geospatial Intelligence Synthesizer if offline or without key
 5. Return high-confidence grounded natural language answers
 """
 import json
 import os
 import sys
+import urllib.request
+import urllib.error
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
-
-try:
-    from google import genai
-    GENAI_AVAILABLE = True
-except ImportError:
-    GENAI_AVAILABLE = False
 
 
 class QueryIntent:
@@ -138,22 +134,18 @@ INTENT_PROMPT_MAP = {
 
 
 class QueryRouter:
-    """Routes user questions to appropriate intents and calls Gemini or the geospatial synthesizer"""
+    """Routes user questions to appropriate intents and calls Gemini REST API or the geospatial synthesizer"""
 
     def __init__(self, gemini_api_key: Optional[str] = None):
         self.api_key = gemini_api_key or os.environ.get("GEMINI_API_KEY")
-        self.client = None
 
         if not self.api_key:
             print(
                 "INFO: GEMINI_API_KEY not set. Using built-in Geospatial Intelligence Synthesizer.",
                 file=sys.stderr
             )
-        elif GENAI_AVAILABLE:
-            try:
-                self.client = genai.Client(api_key=self.api_key)
-            except Exception as e:
-                print(f"WARNING: Failed to initialize Gemini client: {e}", file=sys.stderr)
+        else:
+            print("INFO: GEMINI_API_KEY detected. Cloud Gemini 2.0 reasoning active.", file=sys.stderr)
 
     def classify_intent(self, user_query: str) -> str:
         """Classify user query into an intent category"""
@@ -200,34 +192,54 @@ class QueryRouter:
         )
         full_prompt = f"{SYSTEM_PROMPT}\n\n{task_prompt}"
 
-        if self.client and GENAI_AVAILABLE:
-            return self._call_gemini(full_prompt, intent, grounding_data, user_question)
+        if self.api_key:
+            return self._call_gemini_rest(full_prompt, intent, grounding_data, user_question)
         else:
             return self._fallback_answer(intent, grounding_data, user_question)
 
-    def _call_gemini(
+    def _call_gemini_rest(
         self,
         full_prompt: str,
         intent: str,
         grounding_data: Dict[str, Any],
         user_question: str
     ) -> str:
-        """Call Gemini model with fallback progression (2.5-flash -> 2.0-flash -> 1.5-flash -> local synthesizer)"""
+        """Call Gemini REST API directly using standard urllib with multi-model fallback"""
         models_to_try = [
-            "gemini-2.5-flash",
             "gemini-2.0-flash",
-            "gemini-1.5-flash"
+            "gemini-1.5-flash",
+            "gemini-2.5-flash"
         ]
+
+        payload = json.dumps({
+            "contents": [
+                {
+                    "parts": [
+                        {"text": full_prompt}
+                    ]
+                }
+            ]
+        }).encode("utf-8")
+
         for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+            req = urllib.request.Request(
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
             try:
-                response = self.client.models.generate_content(
-                    model=model_name,
-                    contents=full_prompt
-                )
-                if response and response.text:
-                    return response.text
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                return parts[0]["text"]
             except Exception as e:
-                print(f"DEBUG: {model_name} attempt: {e}", file=sys.stderr)
+                print(f"DEBUG: Gemini API attempt with {model_name} failed: {e}", file=sys.stderr)
                 continue
 
         # If API calls fail, fallback to built-in synthesizer

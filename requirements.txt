@@ -2,7 +2,6 @@ fastapi
 pydantic-settings
 python-dotenv
 python-multipart
-google-genai
 Pillow
 numpy
 huggingface_hub
