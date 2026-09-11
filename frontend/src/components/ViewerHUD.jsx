@@ -309,9 +309,9 @@ export default function ViewerHUD({
                         {/* Compact Badge on Top-Left */}
                         <div className="absolute top-0.5 left-0.5 pointer-events-none">
                           <span
-                            className={`rounded px-1 py-0.2 text-[8px] font-mono font-bold tracking-tight border shadow-xs ${theme.badge}`}
+                            className={`rounded px-1 py-[1px] text-[7px] font-mono font-bold tracking-tight border shadow-xs ${theme.badge}`}
                           >
-                            {tile.class?.replace("_", " ")?.toUpperCase()}: {Math.round(tile.confidence * 100)}%
+                            {Math.round(tile.confidence * 100)}%
                           </span>
                         </div>
                       </div>

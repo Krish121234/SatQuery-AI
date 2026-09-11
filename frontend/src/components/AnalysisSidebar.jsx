@@ -9,7 +9,7 @@ export default function AnalysisSidebar({ grounding, onFilterClass, focusedClass
   // No grounding data yet — show standby placeholder
   if (!grounding || totalTiles === 0) {
     return (
-      <aside className="w-full lg:w-80 flex flex-col gap-4">
+      <aside className="w-full flex flex-col gap-4">
         <div className="earth-panel p-4 text-[#313647] flex flex-col gap-3">
           <div className="flex items-center justify-between pb-2 border-b border-[#e2e0d6]">
             <div>

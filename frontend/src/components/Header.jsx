@@ -81,6 +81,15 @@ export default function Header({
             <Layers className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Temporal Changes</span>
           </button>
+
+          <button
+            onClick={onNavigateLanding}
+            className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[#435663] hover:text-[#313647] hover:bg-white/60 transition-all"
+            title="View Product Tour & Architecture"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[#A3B087]" />
+            <span>Tour</span>
+          </button>
         </div>
 
         {/* Right: Telemetry & User Profile */}

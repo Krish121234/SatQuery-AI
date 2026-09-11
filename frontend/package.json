@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "css": "npx @tailwindcss/cli -i src/index.css -o public/output.css",
+    "build": "npx @tailwindcss/cli -i src/index.css -o public/output.css && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

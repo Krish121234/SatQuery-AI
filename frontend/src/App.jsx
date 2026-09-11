@@ -237,7 +237,11 @@ export default function App() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Navigation Rail */}
-        <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} />
+        <Sidebar
+          activeNav={activeNav}
+          setActiveNav={setActiveNav}
+          onNavigateLanding={() => setView("landing")}
+        />
 
         {/* Main Content View */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-5 max-w-[1720px] mx-auto w-full flex flex-col gap-4">

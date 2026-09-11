@@ -1,7 +1,11 @@
 fastapi
+uvicorn
 pydantic-settings
 python-dotenv
 python-multipart
 Pillow
 numpy
-huggingface_hub<0.26.0
+opencv-python-headless
+huggingface_hub
+open_clip_torch
+torch

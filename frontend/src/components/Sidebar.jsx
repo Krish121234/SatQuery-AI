@@ -1,16 +1,14 @@
 import React from "react";
 import {
   Scan,
-  History,
-  Activity,
   Layers,
   Settings,
-  HelpCircle,
   Globe,
   Database,
+  Sparkles,
 } from "lucide-react";
 
-export default function Sidebar({ activeNav = "scanner", setActiveNav }) {
+export default function Sidebar({ activeNav = "scanner", setActiveNav, onNavigateLanding }) {
   const navItems = [
     { id: "scanner", label: "Observation Scanner", icon: Scan },
     { id: "map", label: "Global Satellite Map", icon: Globe },
@@ -23,9 +21,9 @@ export default function Sidebar({ activeNav = "scanner", setActiveNav }) {
       {/* Top icon and primary navigation */}
       <div className="flex flex-col items-center gap-4">
         <button
-          onClick={() => setActiveNav?.("scanner")}
+          onClick={onNavigateLanding || (() => setActiveNav?.("scanner"))}
           className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#A3B087]/15 border border-[#A3B087]/25 text-[#A3B087] hover:scale-105 transition"
-          title="SatQuery Mission Control"
+          title="Return to Product Tour & Overview"
         >
           <span className="text-base">🛰</span>
         </button>
@@ -59,6 +57,16 @@ export default function Sidebar({ activeNav = "scanner", setActiveNav }) {
 
       {/* Bottom config and settings */}
       <div className="flex flex-col items-center gap-2">
+        {onNavigateLanding && (
+          <button
+            onClick={onNavigateLanding}
+            title="Product Tour & Architecture"
+            className="group flex h-9 w-9 items-center justify-center rounded-xl text-[#435663]/50 hover:bg-[#f5f3ea] hover:text-[#313647] transition"
+          >
+            <Sparkles className="h-4 w-4 text-[#A3B087] transition-transform group-hover:scale-110" />
+          </button>
+        )}
+
         <button
           onClick={() => setActiveNav?.("settings")}
           title="System & Model Config"
