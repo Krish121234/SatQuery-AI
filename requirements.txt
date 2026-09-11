@@ -2,7 +2,6 @@ fastapi
 pydantic-settings
 python-dotenv
 python-multipart
-open-clip-torch
 google-genai
 Pillow
 numpy
