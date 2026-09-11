@@ -1,5 +1,6 @@
 import React from "react";
 import { Crosshair, Zap } from "lucide-react";
+import FormattedResponse from "./FormattedResponse";
 
 export default function ResponseCards({
   currentAnswer,
@@ -74,10 +75,8 @@ export default function ResponseCards({
             </div>
 
             {/* Content */}
-            <div className="space-y-2">
-              <p className="text-sm sm:text-base font-semibold text-[#313647] leading-snug whitespace-pre-line tracking-tight">
-                {card.answer}
-              </p>
+            <div className="space-y-2.5">
+              <FormattedResponse text={card.answer} />
 
               {/* Evidence tags */}
               {card.evidence && card.evidence.length > 0 && (

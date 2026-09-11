@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import FormattedResponse from "./FormattedResponse";
 import {
   Layers,
   ArrowRight,
@@ -309,44 +310,45 @@ export default function BeforeAfterViewer({
       {/* Comparison Viewports: Split Slider vs Side-by-Side */}
       {viewMode === "slider" ? (
         /* Split Slider Viewport */
-        <div className="relative h-[440px] sm:h-[480px] w-full overflow-hidden rounded-2xl border border-[#e2e0d6] select-none shadow-sm bg-[#1a202c]">
-          {/* After Image (Background layer) */}
+        <div className="relative h-[440px] sm:h-[480px] w-full overflow-hidden rounded-2xl border border-[#e2e0d6] select-none shadow-sm bg-[#1a202c] flex items-center justify-center">
+          {/* After Image (Background layer - fit to container with background fill) */}
           <img
             src={afterImage.src}
             alt="Epoch 2"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
           />
-          <span className="absolute top-3 right-3 z-10 rounded-xl bg-white/95 border border-[#e2e0d6] px-3 py-1 font-mono text-xs font-bold text-[#A3B087] backdrop-blur-sm shadow-sm">
+          <span className="absolute top-3 right-3 z-10 rounded-xl bg-white/95 border border-[#e2e0d6] px-3 py-1 font-mono text-xs font-bold text-[#A3B087] backdrop-blur-sm shadow-sm pointer-events-none">
             EPOCH 2: AFTER ({afterImage.date})
           </span>
 
-          {/* Before Image (Clipped overlay) */}
+          {/* Before Image (Top layer clipped cleanly at slider position) */}
           <div
-            className="absolute inset-0 overflow-hidden"
-            style={{ width: `${sliderPos}%` }}
+            className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden"
+            style={{
+              clipPath: `inset(0 ${100 - sliderPos}% 0 0)`,
+            }}
           >
             <img
               src={beforeImage.src}
               alt="Epoch 1"
-              className="absolute inset-0 h-full w-full object-cover max-w-none"
-              style={{ width: "100%", height: "100%" }}
+              className="h-full w-full object-contain"
             />
             <span className="absolute top-3 left-3 z-10 rounded-xl bg-white/95 border border-[#e2e0d6] px-3 py-1 font-mono text-xs font-bold text-[#313647] backdrop-blur-sm shadow-sm">
               EPOCH 1: BEFORE ({beforeImage.date})
             </span>
           </div>
 
-          {/* Vertical Split Handle */}
+          {/* Vertical Split Line & Handle */}
           <div
-            className="absolute top-0 bottom-0 z-20 w-1 bg-[#A3B087] cursor-ew-resize flex items-center justify-center -translate-x-1/2 shadow-lg"
+            className="absolute top-0 bottom-0 z-20 w-0.5 bg-white cursor-ew-resize flex items-center justify-center -translate-x-1/2 shadow-xl pointer-events-none"
             style={{ left: `${sliderPos}%` }}
           >
-            <div className="h-9 w-9 rounded-full border-2 border-white bg-[#A3B087] shadow-xl flex items-center justify-center text-xs font-mono font-bold text-white">
+            <div className="h-9 w-9 rounded-full border-2 border-white bg-[#A3B087] shadow-2xl flex items-center justify-center text-xs font-mono font-bold text-white">
               ⇄
             </div>
           </div>
 
-          {/* Range input slider */}
+          {/* Interactive Range Slider overlay */}
           <input
             type="range"
             min="0"
@@ -354,27 +356,28 @@ export default function BeforeAfterViewer({
             value={sliderPos}
             onChange={(e) => setSliderPos(Number(e.target.value))}
             className="absolute inset-0 z-30 opacity-0 cursor-ew-resize h-full w-full"
+            aria-label="Split slider comparison"
           />
         </div>
       ) : (
         /* Side-by-Side Viewport */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative h-[380px] rounded-2xl overflow-hidden border border-[#e2e0d6] bg-[#1a202c] shadow-sm">
+          <div className="relative h-[380px] rounded-2xl overflow-hidden border border-[#e2e0d6] bg-[#1a202c] shadow-sm flex items-center justify-center">
             <img
               src={beforeImage.src}
               alt="Epoch 1 Before"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
             <div className="absolute top-3 left-3 rounded-xl bg-white/95 border border-[#e2e0d6] px-3 py-1 font-mono text-xs font-bold text-[#313647] shadow-sm">
               EPOCH 1: BEFORE ({beforeImage.date})
             </div>
           </div>
 
-          <div className="relative h-[380px] rounded-2xl overflow-hidden border border-[#e2e0d6] bg-[#1a202c] shadow-sm">
+          <div className="relative h-[380px] rounded-2xl overflow-hidden border border-[#e2e0d6] bg-[#1a202c] shadow-sm flex items-center justify-center">
             <img
               src={afterImage.src}
               alt="Epoch 2 After"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
             <div className="absolute top-3 left-3 rounded-xl bg-white/95 border border-[#e2e0d6] px-3 py-1 font-mono text-xs font-bold text-[#A3B087] shadow-sm">
               EPOCH 2: AFTER ({afterImage.date})
@@ -449,12 +452,10 @@ export default function BeforeAfterViewer({
           {/* AI Analysis Summary */}
           {summaryText && (
             <div className="rounded-xl bg-[#f5f3ea] border border-[#e2e0d6] p-4">
-              <span className="text-[10px] font-mono font-bold text-[#435663]/60 uppercase block mb-1">
+              <span className="text-[10px] font-mono font-bold text-[#435663]/60 uppercase block mb-2">
                 GeoRSCLIP Analytical Summary
               </span>
-              <p className="text-xs sm:text-sm text-[#313647] leading-relaxed">
-                {summaryText}
-              </p>
+              <FormattedResponse text={summaryText} />
             </div>
           )}
 

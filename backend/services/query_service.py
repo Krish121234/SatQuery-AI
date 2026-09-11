@@ -12,6 +12,11 @@ import json
 import os
 import sys
 from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 try:
     from google import genai
@@ -208,7 +213,11 @@ class QueryRouter:
         user_question: str
     ) -> str:
         """Call Gemini model with fallback progression (2.5-flash -> 2.0-flash -> 1.5-flash -> local synthesizer)"""
-        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        models_to_try = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash"
+        ]
         for model_name in models_to_try:
             try:
                 response = self.client.models.generate_content(

@@ -5,6 +5,8 @@
  * Day 2: renders mock answer JSON.
  * Day 4: renders real answer + evidence percentages.
  */
+import FormattedResponse from "./FormattedResponse";
+
 export default function AnswerPanel({ answer, loading }) {
   if (loading) {
     return (
@@ -46,8 +48,8 @@ export default function AnswerPanel({ answer, loading }) {
   }
 
   return (
-    <div className="space-y-2 rounded-lg bg-blue-50 p-4">
-      <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-line">{answer.answer}</p>
+    <div className="space-y-3 rounded-xl bg-[#f5f3ea] border border-[#e2e0d6] p-4">
+      <FormattedResponse text={answer.answer} />
       {answer.evidence?.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {answer.evidence.map((cls) => (

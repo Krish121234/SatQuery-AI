@@ -121,11 +121,17 @@ export default function ViewerHUD({
   activeFilter,
   onHoverTile,
   focusedClass,
+  showOverlays: controlledShowOverlays,
+  onToggleOverlays,
 }) {
   const containerRef = useRef(null);
   const [band, setBand] = useState("RGB+NIR");
   const [zoom, setZoom] = useState(1);
-  const [showOverlays, setShowOverlays] = useState(true);
+  const [internalShowOverlays, setInternalShowOverlays] = useState(false);
+  const showOverlays =
+    controlledShowOverlays !== undefined ? controlledShowOverlays : internalShowOverlays;
+  const toggleOverlays =
+    onToggleOverlays || (() => setInternalShowOverlays((prev) => !prev));
   const [hoveredTile, setHoveredTile] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, show: false });
   const [coordsText, setCoordsText] = useState("34°03'21\"N, 118°14'09\"W");
@@ -188,7 +194,7 @@ export default function ViewerHUD({
 
           {/* Prominent Toggle Overlays Button */}
           <button
-            onClick={() => setShowOverlays(!showOverlays)}
+            onClick={toggleOverlays}
             title={showOverlays ? "Hide Grounding Tile Grid" : "Show Grounding Tile Grid"}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition-all shadow-sm ${
               showOverlays

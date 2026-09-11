@@ -15,7 +15,7 @@ import AuthModal from "./components/AuthModal";
 import { queryChange, queryImage } from "./services/api";
 
 export default function App() {
-  const [view, setView] = useState("app"); // "landing" | "app"
+  const [view, setView] = useState("landing"); // "landing" | "app"
   const [activeNav, setActiveNav] = useState("scanner"); // "scanner" | "map" | "temporal" | "catalog" | "settings"
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -87,6 +87,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [focusedClass, setFocusedClass] = useState(null);
+  const [showOverlays, setShowOverlays] = useState(false);
   const [mapViewport, setMapViewport] = useState({
     lat: 38.1636,
     lng: -121.6864,
@@ -96,6 +97,7 @@ export default function App() {
 
   function handleSelectPreset(presetKey) {
     setSelectedPreset(presetKey);
+    setShowOverlays(false);
     const found = PRESET_IMAGES.find((p) => p.id === presetKey);
     if (found) {
       setCurrentImage({
@@ -110,6 +112,7 @@ export default function App() {
   function handleImageUpload(imageObj) {
     setCurrentImage(imageObj);
     setSelectedPreset(null);
+    setShowOverlays(false);
   }
 
   function handleMapSendToScanner(roiData) {
@@ -120,6 +123,7 @@ export default function App() {
       file: null,
     });
     setSelectedPreset(null);
+    setShowOverlays(false);
     setActiveNav("scanner");
   }
 
@@ -131,6 +135,7 @@ export default function App() {
       file: null,
     });
     setSelectedPreset(preset.id);
+    setShowOverlays(false);
     setActiveNav("scanner");
   }
 
@@ -156,6 +161,7 @@ export default function App() {
       };
 
       if (result.grounding) setGrounding(result.grounding);
+      setShowOverlays(true);
       setHistory((prev) => [currentAnswer, ...prev]);
       setCurrentAnswer(newAnswer);
     } catch (requestError) {
@@ -262,6 +268,8 @@ export default function App() {
                     imageSrc={currentImage?.dataUrl}
                     grounding={grounding}
                     focusedClass={focusedClass}
+                    showOverlays={showOverlays}
+                    onToggleOverlays={() => setShowOverlays((prev) => !prev)}
                     onHoverTile={(tile) => console.log("Hovered tile:", tile)}
                   />
                 </div>
