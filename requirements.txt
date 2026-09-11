@@ -1,14 +1,9 @@
 fastapi
-uvicorn
-gradio>=4.44.0,<5.0.0
 pydantic-settings
 python-dotenv
 python-multipart
-torch
-torchvision
-open_clip_torch
+open-clip-torch
 google-genai
 Pillow
 numpy
-opencv-python-headless
 huggingface_hub
