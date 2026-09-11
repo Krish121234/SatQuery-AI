@@ -17,5 +17,16 @@ build/
 # Colab / notebooks checkpoints
 .ipynb_checkpoints/
 
-# OS
+# OS / System files
 .DS_Store
+Thumbs.db
+
+# Documentation / Scratchpad / Media
+project_notes/
+*.pdf
+*.png
+*.jpg
+!frontend/public/
+!frontend/src/
+day1-final.html
+

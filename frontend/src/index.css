@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@layer base {
+  :root {
+    --bg-cream: #F4F0E3;
+    --bg-surface: #FCFAF4;
+    --border-earth: #E2DDD0;
+    --text-primary: #243126;
+    --text-secondary: #47584A;
+    --text-muted: #738476;
+    --matcha-light: #DDE8C9;
+    --matcha-soft: #B8C99D;
+    --matcha-primary: #78966A;
+    --matcha-moss: #526B45;
+    --forest-deep: #243D2A;
+  }
+
+  body {
+    background-color: #F4F0E3;
+    color: #243126;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
+    selection-background-color: #78966A;
+    selection-color: #FFFFFF;
+  }
+}
+
+/* Soft earthy scientific panel */
+.earth-panel {
+  background: #FCFAF4;
+  border: 1px solid #E2DDD0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(36, 49, 38, 0.05), 0 4px 12px rgba(36, 49, 38, 0.03);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+.earth-panel:hover {
+  border-color: #C8C1B0;
+  box-shadow: 0 4px 8px rgba(36, 49, 38, 0.07), 0 12px 24px rgba(36, 49, 38, 0.04);
+}
+
+/* Coordinate Grid background pattern for scientific Earth observation */
+.bg-coord-grid {
+  background-size: 32px 32px;
+  background-image:
+    linear-gradient(to right, rgba(120, 150, 106, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 150, 106, 0.07) 1px, transparent 1px);
+}
+
+.bg-coord-grid-dense {
+  background-size: 16px 16px;
+  background-image:
+    linear-gradient(to right, rgba(120, 150, 106, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 150, 106, 0.1) 1px, transparent 1px);
+}
+
+/* Scanner Beam Effect */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(1000%);
+    opacity: 0;
+  }
+}
+
+.animate-scanline {
+  animation: scanline 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Pulse radar ring */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(120, 150, 106, 0.45);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 12px rgba(120, 150, 106, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(120, 150, 106, 0);
+  }
+}
+
+.animate-radar {
+  animation: radar-pulse 2.5s infinite;
+}
+
+/* Warm earthy scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #EFEAD9;
+}
+::-webkit-scrollbar-thumb {
+  background: #C4BDAA;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #78966A;
+}
+
+/* Scrollytelling step highlight transition */
+.step-transition {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
