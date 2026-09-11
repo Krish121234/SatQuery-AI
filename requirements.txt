@@ -4,4 +4,3 @@ python-dotenv
 python-multipart
 Pillow
 numpy
-huggingface_hub
