@@ -1,3 +1,13 @@
+---
+title: Satquery Backend
+emoji: 🛰️
+colorFrom: green
+colorTo: emerald
+sdk: gradio
+app_file: app.py
+pinned: false
+---
+
 # SatQuery-AI Backend - Complete Setup Guide
 
 ## Overview

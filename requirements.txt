@@ -1,7 +1,13 @@
 fastapi
 uvicorn
+gradio
+pydantic-settings
 python-dotenv
-google-generativeai
+python-multipart
+torch
+torchvision
+open_clip_torch
+google-genai
 Pillow
 numpy
 opencv-python-headless
